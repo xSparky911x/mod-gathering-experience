@@ -1,3 +1,7 @@
+/*
+ * Copyright (C) 2024+ Thaxtin, released under GNU AGPL v3 license: https://github.com/xSparky911x/mod-gathering-experience/blob/master/LICENSE
+ */
+
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "Creature.h"
