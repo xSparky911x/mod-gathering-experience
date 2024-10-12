@@ -1,0 +1,24 @@
+#
+# Copyright (C) 2024+ Thaxtin, released under GNU AGPL v3 license: https://github.com/xSparky911x/mod-gathering-experience/blob/master/LICENSE
+#
+
+[worldserver]
+
+#####################################################
+# Gathering Experience module configuration
+#####################################################
+#
+#    GatheringExperienceConfig.Enable
+#        Description: Enable to skip the Gathering Experience module
+#        Default:     1 - Enabled
+#                     0 - Disabled
+#
+#    GatheringExperienceConfig.Announce 
+#        Description: Inform the player about the loaded module
+#        Default:     1 - Enabled
+#                     0 - Disabled
+#
+
+GatheringExperience.Enable = 1
+
+GatheringExperience.Announce = 1
