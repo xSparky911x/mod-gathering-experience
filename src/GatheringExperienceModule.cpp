@@ -6,8 +6,8 @@
 #include "SkillDiscovery.h"
 #include "Config.h" // For loading configuration values
 
-// Define the maximum level in Wrath of the Lich King
-const uint32 MAX_LEVEL = 80;
+// Define the maximum level for gathering scaling
+const uint32 GATHERING_MAX_LEVEL = 80;
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -32,8 +32,8 @@ public:
     {
         uint32 playerLevel = player->getLevel();
 
-        // Apply the scaling formula
-        uint32 scaledXP = static_cast<uint32>(baseXP * (1.0 - static_cast<float>(playerLevel) / MAX_LEVEL));
+        // Apply the scaling formula based on GATHERING_MAX_LEVEL
+        uint32 scaledXP = static_cast<uint32>(baseXP * (1.0 - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL));
 
         // Ensure a minimum XP of 1 to avoid giving 0 XP
         return std::max(scaledXP, 1u);
