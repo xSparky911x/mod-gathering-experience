@@ -1,27 +1,37 @@
-/*
- * Copyright (C) 2024+ Thaxtin, released under GNU AGPL v3 license: https://github.com/xSparky911x/mod-gathering-experience/blob/master/LICENSE
- */
-
 #include "ScriptMgr.h"
 #include "Player.h"
 #include "Creature.h"
 #include "ObjectMgr.h"
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
+#include "Config.h" // For loading configuration values
 
 // Define the maximum level in Wrath of the Lich King
 const uint32 MAX_LEVEL = 80;
 
-class GatheringExperienceModule : public PlayerScript
+class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
 public:
-    GatheringExperienceModule() : PlayerScript("GatheringExperienceModule") { }
+    GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") { }
+
+    // OnWorldInitialize hook to load the config file
+    void OnBeforeConfigLoad(bool /*reload*/) override
+    {
+        // Load the custom config file from the conf directory
+        sConfigMgr->LoadMore("mod_gathering_experience.conf");
+
+        // Inform the server that the module is enabled (optional)
+        if (sConfigMgr->GetBoolDefault("GatheringExperience.Announce", true))
+        {
+            LOG_INFO("module", "Gathering Experience Module Loaded");
+        }
+    }
 
     // Function to calculate scaled experience based on player level
     uint32 CalculateExperience(Player* player, uint32 baseXP)
     {
         uint32 playerLevel = player->getLevel();
-        
+
         // Apply the scaling formula
         uint32 scaledXP = static_cast<uint32>(baseXP * (1.0 - static_cast<float>(playerLevel) / MAX_LEVEL));
 
@@ -100,6 +110,10 @@ public:
     // Hook for Mining and Herbalism (Looting a resource node)
     void OnLootItem(Player* player, Item* item)
     {
+        // Check if the GatheringExperience module is enabled
+        if (!sConfigMgr->GetBoolDefault("GatheringExperience.Enable", true))
+            return; // Exit if the module is disabled
+
         uint32 itemId = item->GetEntry();
 
         // Get the player's current skill level in the appropriate profession
@@ -110,13 +124,11 @@ public:
         if (player->HasSkill(SKILL_MINING))
         {
             currentSkill = player->GetSkillValue(SKILL_MINING);
-            // Hardcode for now, you can implement a function that fetches correct skill requirements based on itemId
             requiredSkill = (itemId == 2770) ? 1 : (itemId == 10620) ? 200 : 50;
         }
         else if (player->HasSkill(SKILL_HERBALISM))
         {
             currentSkill = player->GetSkillValue(SKILL_HERBALISM);
-            // Hardcode for now, you can implement a function that fetches correct skill requirements based on itemId
             requiredSkill = (itemId == 765) ? 1 : (itemId == 13463) ? 150 : 50;
         }
 
@@ -136,13 +148,20 @@ public:
         // Give the player the experience
         player->GiveXP(xp, nullptr);
 
-        // Send a message to the player
-        player->SendBroadcastMessage("You gained experience from gathering.");
+        // Send a message to the player (if announcements are enabled)
+        if (sConfigMgr->GetBoolDefault("GatheringExperience.Announce", true))
+        {
+            player->SendBroadcastMessage("You gained experience from gathering.");
+        }
     }
 
     // Hook for Skinning (When the player skins a creature)
     void OnKillCreature(Player* player, Creature* creature)
     {
+        // Check if the GatheringExperience module is enabled
+        if (!sConfigMgr->GetBoolDefault("GatheringExperience.Enable", true))
+            return; // Exit if the module is disabled
+
         // Check if the player can skin the creature and if it's a beast (skinnable creatures)
         if (player->HasSkill(SKILL_SKINNING) && creature->GetCreatureType() == CREATURE_TYPE_BEAST)
         {
@@ -162,8 +181,11 @@ public:
             // Give the player the experience
             player->GiveXP(xp, nullptr);
 
-            // Send a message to the player
-            player->SendBroadcastMessage("You gained experience from skinning.");
+            // Send a message to the player (if announcements are enabled)
+            if (sConfigMgr->GetBoolDefault("GatheringExperience.Announce", true))
+            {
+                player->SendBroadcastMessage("You gained experience from skinning.");
+            }
         }
     }
 };
