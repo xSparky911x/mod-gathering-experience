@@ -20,7 +20,7 @@ public:
     {
         if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
         {
-            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00 Gathering Experience|r module by Thaxtin.");
+            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience|r module by Thaxtin.");
         }
     }
 
