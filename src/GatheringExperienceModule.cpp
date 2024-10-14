@@ -5,6 +5,7 @@
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
 #include "Chat.h" // For sending custom messages
+#include "Config.h" // For loading configuration values (this fixes the sConfigMgr issue)
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
