@@ -4,8 +4,7 @@
 #include "ObjectMgr.h"
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
-#include "Chat.h" // For sending messages to players
-#include "Config.h" // For loading configuration values
+#include "LootMgr.h" // To include LootNotification
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
@@ -18,17 +17,13 @@ public:
     // OnWorldInitialize hook to log that the module is loaded
     void OnBeforeConfigLoad(bool /*reload*/) override
     {
-        // Inform the server that the module is enabled (optional)
-        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
-        {
-            LOG_INFO("module", "Gathering Experience Module Loaded");
-        }
+        LOG_INFO("module", "Gathering Experience Module Loaded");
     }
 
     // Function to calculate scaled experience based on player level
     uint32 CalculateExperience(Player* player, uint32 baseXP)
     {
-        uint32 playerLevel = player->GetLevel(); // Use GetLevel() instead of getLevel()
+        uint32 playerLevel = player->GetLevel(); 
 
         // Apply the scaling formula based on GATHERING_MAX_LEVEL
         uint32 scaledXP = static_cast<uint32>(baseXP * (1.0 - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL));
@@ -150,11 +145,10 @@ public:
         // Give the player the experience
         player->GiveXP(xp, nullptr);
 
-        // Send a message to the player (if announcements are enabled)
-        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
-        {
-            ChatHandler(player->GetSession()).PSendSysMessage("You gained experience from gathering.");
-        }
+        // Display the experience gained in the loot window (loot notification)
+        LootNotification lootNotification;
+        lootNotification.SetMessage(player->GetSession(), LOOT_MSG_MONEY, xp, "experience", itemId);
+        player->SendLootNotification(lootNotification);
     }
 
     // Hook for Skinning (When the player skins a creature)
@@ -183,11 +177,10 @@ public:
             // Give the player the experience
             player->GiveXP(xp, nullptr);
 
-            // Send a message to the player (if announcements are enabled)
-            if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
-            {
-                ChatHandler(player->GetSession()).PSendSysMessage("You gained experience from skinning.");
-            }
+            // Display the experience gained in the loot window (loot notification)
+            LootNotification lootNotification;
+            lootNotification.SetMessage(player->GetSession(), LOOT_MSG_MONEY, xp, "experience", creature->GetEntry());
+            player->SendLootNotification(lootNotification);
         }
     }
 };
