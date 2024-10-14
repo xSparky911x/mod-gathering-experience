@@ -4,6 +4,7 @@
 #include "ObjectMgr.h"
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
+#include "Chat.h" // For sending messages to players
 #include "Config.h" // For loading configuration values
 
 // Define the maximum level for gathering scaling
@@ -37,7 +38,7 @@ public:
     }
 
     // Function to calculate bonus XP based on the player's skill vs the required skill
-    uint32 GetSkillBasedXP(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill)
+    uint32 GetSkillBasedXP(uint32 baseXP, uint32 requiredSkill, uint32 currentSkill)
     {
         if (currentSkill < requiredSkill)
         {
@@ -133,7 +134,7 @@ public:
         uint32 baseXP = GetGatheringBaseXP(itemId);
 
         // Apply the skill-based XP bonus/penalty
-        uint32 skillBasedXP = GetSkillBasedXP(player, baseXP, requiredSkill, currentSkill);
+        uint32 skillBasedXP = GetSkillBasedXP(baseXP, requiredSkill, currentSkill);
 
         // Apply rarity multiplier
         float rarityMultiplier = GetRarityMultiplier(itemId);
@@ -148,7 +149,7 @@ public:
         // Send a message to the player (if announcements are enabled)
         if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
         {
-            player->SendBroadcastMessage("You gained experience from gathering.");
+            ChatHandler(player->GetSession()).PSendSysMessage("You gained experience from gathering.");
         }
     }
 
@@ -170,7 +171,7 @@ public:
             uint32 baseXP = requiredSkill / 2; // Example logic for skinning XP
 
             // Apply skill-based XP bonus/penalty
-            uint32 skillBasedXP = GetSkillBasedXP(player, baseXP, requiredSkill, currentSkill);
+            uint32 skillBasedXP = GetSkillBasedXP(baseXP, requiredSkill, currentSkill);
 
             // Calculate scaled experience based on player's level
             uint32 xp = CalculateExperience(player, skillBasedXP);
@@ -181,7 +182,7 @@ public:
             // Send a message to the player (if announcements are enabled)
             if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
             {
-                player->SendBroadcastMessage("You gained experience from skinning.");
+                ChatHandler(player->GetSession()).PSendSysMessage("You gained experience from skinning.");
             }
         }
     }
