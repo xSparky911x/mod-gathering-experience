@@ -108,6 +108,10 @@ public:
     // Hook for Mining and Herbalism (Looting a resource node)
     void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override
     {
+        // Suppress unused parameter warnings
+        (void)count;
+        (void)lootguid;
+
         // Check if the GatheringExperience module is enabled
         if (!sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
             return; // Exit if the module is disabled
@@ -192,9 +196,4 @@ public:
 void AddGatheringExperienceModuleScripts()
 {
     new GatheringExperienceModule();
-}
-
-void Addmod_gathering_experience()
-{
-    AddGatheringExperienceModuleScripts();
 }
