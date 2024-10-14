@@ -100,6 +100,24 @@ public:
         return 1.0f;
     }
 
+    // Check if item is related to gathering (mining or herbalism)
+    bool IsGatheringItem(uint32 itemId)
+    {
+        // Mining item XP values
+        const std::set<uint32> gatheringItems = {
+            2770, // Copper Ore
+            2771, // Tin Ore
+            2772, // Iron Ore
+            10620, // Thorium Ore
+            765,   // Silverleaf
+            2447,  // Peacebloom
+            8836,  // Arthas' Tears
+            13463  // Dreamfoil
+        };
+
+        return gatheringItems.find(itemId) != gatheringItems.end();
+    }
+
     // Hook for Mining and Herbalism (Looting a resource node)
     void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override
     {
@@ -107,11 +125,11 @@ public:
         (void)count;
         (void)lootguid;
 
-        // Check if the GatheringExperience module is enabled
-        if (!sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
-            return; // Exit if the module is disabled
-
         uint32 itemId = item->GetEntry();
+
+        // Ensure the looted item is part of a gathering profession (herbalism/mining)
+        if (!IsGatheringItem(itemId))
+            return; // Skip non-gathering items
 
         // Get the player's current skill level in the appropriate profession
         uint32 currentSkill = 0;
@@ -127,6 +145,10 @@ public:
         {
             currentSkill = player->GetSkillValue(SKILL_HERBALISM);
             requiredSkill = (itemId == 765) ? 1 : (itemId == 13463) ? 150 : 50;
+        }
+        else
+        {
+            return; // No gathering skill, exit
         }
 
         // Get base XP for the specific item
