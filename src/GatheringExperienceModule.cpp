@@ -5,6 +5,7 @@
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
 #include "Chat.h" // For sending custom messages
+#include "WorldSession.h" // For sending loot-like messages
 #include "Config.h" // For loading configuration values (this fixes the sConfigMgr issue)
 
 // Define the maximum level for gathering scaling
@@ -119,6 +120,18 @@ public:
         return gatheringItems.find(itemId) != gatheringItems.end();
     }
 
+    // Function to send a loot-like experience message to the loot window
+    void SendLootMessage(Player* player, uint32 xp, const std::string& itemName)
+    {
+        // Create a custom loot message using the WorldSession's SendLootResponse function
+        WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4);
+        data << uint32(xp); // Experience amount
+        player->GetSession()->SendPacket(&data);
+
+        // Send a second message for the gathering experience
+        ChatHandler(player->GetSession()).PSendSysMessage("You gained %u experience for gathering %s.", xp, itemName.c_str());
+    }
+
     // Hook for Mining and Herbalism (Looting a resource node)
     void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override
     {
@@ -168,8 +181,8 @@ public:
         // Give the player the experience
         player->GiveXP(xp, nullptr);
 
-        // Send a custom loot message to display the experience gained
-        ChatHandler(player->GetSession()).PSendSysMessage("You gained %u experience for gathering %s.", xp, item->GetTemplate()->Name1.c_str());
+        // Send the loot-like experience message
+        SendLootMessage(player, xp, item->GetTemplate()->Name1);
     }
 
     // Hook for Skinning (When the player skins a creature)
@@ -198,8 +211,8 @@ public:
             // Give the player the experience
             player->GiveXP(xp, nullptr);
 
-            // Send a custom loot message to display the experience gained
-            ChatHandler(player->GetSession()).PSendSysMessage("You gained %u experience for skinning %s.", xp, creature->GetName().c_str());
+            // Send the loot-like experience message
+            SendLootMessage(player, xp, creature->GetName());
         }
     }
 };
