@@ -5,8 +5,8 @@
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
 #include "Chat.h" // For sending custom messages
-#include "WorldSession.h" // For sending loot-like messages
-#include "Config.h" // For loading configuration values (this fixes the sConfigMgr issue)
+#include "WorldPacket.h" // For sending loot notifications
+#include "Config.h" // For loading configuration values
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
@@ -15,6 +15,14 @@ class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
 public:
     GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") { }
+
+    void OnLogin(Player* player) override
+    {
+        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00No Gathering Experience|r module by Thaxtin.");
+        }
+    }
 
     // OnWorldInitialize hook to log that the module is loaded
     void OnBeforeConfigLoad(bool /*reload*/) override
@@ -25,7 +33,7 @@ public:
     // Function to calculate scaled experience based on player level
     uint32 CalculateExperience(Player* player, uint32 baseXP)
     {
-        uint32 playerLevel = player->GetLevel(); 
+        uint32 playerLevel = player->GetLevel();
 
         // Apply the scaling formula based on GATHERING_MAX_LEVEL
         uint32 scaledXP = static_cast<uint32>(baseXP * (1.0 - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL));
@@ -120,25 +128,9 @@ public:
         return gatheringItems.find(itemId) != gatheringItems.end();
     }
 
-    // Function to send a loot-like experience message to the loot window
-    void SendLootMessage(Player* player, uint32 xp, const std::string& itemName)
-    {
-        // Create a custom loot message using the WorldSession's SendLootResponse function
-        WorldPacket data(SMSG_LOOT_MONEY_NOTIFY, 4);
-        data << uint32(xp); // Experience amount
-        player->GetSession()->SendPacket(&data);
-
-        // Send a second message for the gathering experience
-        ChatHandler(player->GetSession()).PSendSysMessage("You gained %u experience for gathering %s.", xp, itemName.c_str());
-    }
-
     // Hook for Mining and Herbalism (Looting a resource node)
     void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override
     {
-        // Suppress unused parameter warnings
-        (void)count;
-        (void)lootguid;
-
         uint32 itemId = item->GetEntry();
 
         // Ensure the looted item is part of a gathering profession (herbalism/mining)
@@ -178,11 +170,8 @@ public:
         // Calculate scaled experience based on player's level
         uint32 xp = CalculateExperience(player, finalXP);
 
-        // Give the player the experience
+        // Give the player the experience without any notifications
         player->GiveXP(xp, nullptr);
-
-        // Send the loot-like experience message
-        SendLootMessage(player, xp, item->GetTemplate()->Name1);
     }
 
     // Hook for Skinning (When the player skins a creature)
@@ -208,11 +197,8 @@ public:
             // Calculate scaled experience based on player's level
             uint32 xp = CalculateExperience(player, skillBasedXP);
 
-            // Give the player the experience
+            // Give the player the experience without any notifications
             player->GiveXP(xp, nullptr);
-
-            // Send the loot-like experience message
-            SendLootMessage(player, xp, creature->GetName());
         }
     }
 };
