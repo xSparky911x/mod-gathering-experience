@@ -27,7 +27,7 @@ public:
     // Function to calculate scaled experience based on player level
     uint32 CalculateExperience(Player* player, uint32 baseXP)
     {
-        uint32 playerLevel = player->getLevel();
+        uint32 playerLevel = player->GetLevel(); // Use GetLevel() instead of getLevel()
 
         // Apply the scaling formula based on GATHERING_MAX_LEVEL
         uint32 scaledXP = static_cast<uint32>(baseXP * (1.0 - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL));
