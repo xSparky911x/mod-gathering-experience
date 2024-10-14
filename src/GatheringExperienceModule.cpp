@@ -4,7 +4,7 @@
 #include "ObjectMgr.h"
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
-#include "LootMgr.h" // To include LootNotification
+#include "Chat.h" // For sending custom messages
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
@@ -167,10 +167,8 @@ public:
         // Give the player the experience
         player->GiveXP(xp, nullptr);
 
-        // Display the experience gained in the loot window (loot notification)
-        LootNotification lootNotification;
-        lootNotification.SetMessage(player->GetSession(), LOOT_MSG_MONEY, xp, "experience", itemId);
-        player->SendLootNotification(lootNotification);
+        // Send a custom loot message to display the experience gained
+        ChatHandler(player->GetSession()).PSendSysMessage("You gained %u experience for gathering %s.", xp, item->GetTemplate()->Name1.c_str());
     }
 
     // Hook for Skinning (When the player skins a creature)
@@ -199,10 +197,8 @@ public:
             // Give the player the experience
             player->GiveXP(xp, nullptr);
 
-            // Display the experience gained in the loot window (loot notification)
-            LootNotification lootNotification;
-            lootNotification.SetMessage(player->GetSession(), LOOT_MSG_MONEY, xp, "experience", creature->GetEntry());
-            player->SendLootNotification(lootNotification);
+            // Send a custom loot message to display the experience gained
+            ChatHandler(player->GetSession()).PSendSysMessage("You gained %u experience for skinning %s.", xp, creature->GetName().c_str());
         }
     }
 };
