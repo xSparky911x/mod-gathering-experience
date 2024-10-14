@@ -153,7 +153,7 @@ public:
     }
 
     // Hook for Skinning (When the player skins a creature)
-    void OnKillCreature(Player* player, Creature* creature) override
+    void OnKillCreature(Player* player, Creature* creature)
     {
         // Check if the GatheringExperience module is enabled
         if (!sConfigMgr->GetBoolDefault("GatheringExperience.Enable", true))
