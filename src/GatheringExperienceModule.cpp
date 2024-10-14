@@ -14,12 +14,9 @@ class GatheringExperienceModule : public PlayerScript, public WorldScript
 public:
     GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") { }
 
-    // OnWorldInitialize hook to load the config file
+    // OnWorldInitialize hook to log that the module is loaded
     void OnBeforeConfigLoad(bool /*reload*/) override
     {
-        // Load the custom config file from the conf directory
-        sConfigMgr->LoadMore("mod_gathering_experience.conf");
-
         // Inform the server that the module is enabled (optional)
         if (sConfigMgr->GetBoolDefault("GatheringExperience.Announce", true))
         {
@@ -108,7 +105,7 @@ public:
     }
 
     // Hook for Mining and Herbalism (Looting a resource node)
-    void OnLootItem(Player* player, Item* item)
+    void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override
     {
         // Check if the GatheringExperience module is enabled
         if (!sConfigMgr->GetBoolDefault("GatheringExperience.Enable", true))
@@ -156,7 +153,7 @@ public:
     }
 
     // Hook for Skinning (When the player skins a creature)
-    void OnKillCreature(Player* player, Creature* creature)
+    void OnKillCreature(Player* player, Creature* creature) override
     {
         // Check if the GatheringExperience module is enabled
         if (!sConfigMgr->GetBoolDefault("GatheringExperience.Enable", true))
