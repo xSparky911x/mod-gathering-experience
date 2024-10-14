@@ -18,7 +18,7 @@ public:
     void OnBeforeConfigLoad(bool /*reload*/) override
     {
         // Inform the server that the module is enabled (optional)
-        if (sConfigMgr->GetBoolDefault("GatheringExperience.Announce", true))
+        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
         {
             LOG_INFO("module", "Gathering Experience Module Loaded");
         }
@@ -108,7 +108,7 @@ public:
     void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override
     {
         // Check if the GatheringExperience module is enabled
-        if (!sConfigMgr->GetBoolDefault("GatheringExperience.Enable", true))
+        if (!sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
             return; // Exit if the module is disabled
 
         uint32 itemId = item->GetEntry();
@@ -146,7 +146,7 @@ public:
         player->GiveXP(xp, nullptr);
 
         // Send a message to the player (if announcements are enabled)
-        if (sConfigMgr->GetBoolDefault("GatheringExperience.Announce", true))
+        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
         {
             player->SendBroadcastMessage("You gained experience from gathering.");
         }
@@ -156,7 +156,7 @@ public:
     void OnKillCreature(Player* player, Creature* creature)
     {
         // Check if the GatheringExperience module is enabled
-        if (!sConfigMgr->GetBoolDefault("GatheringExperience.Enable", true))
+        if (!sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
             return; // Exit if the module is disabled
 
         // Check if the player can skin the creature and if it's a beast (skinnable creatures)
@@ -179,7 +179,7 @@ public:
             player->GiveXP(xp, nullptr);
 
             // Send a message to the player (if announcements are enabled)
-            if (sConfigMgr->GetBoolDefault("GatheringExperience.Announce", true))
+            if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
             {
                 player->SendBroadcastMessage("You gained experience from skinning.");
             }
