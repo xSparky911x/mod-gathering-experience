@@ -8,7 +8,8 @@
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
-const uint32 MAX_EXPERIENCE_GAIN = 1000; // Define a reasonable cap for XP gained per gathering action
+const uint32 MAX_EXPERIENCE_GAIN = 400; // Keeping the XP cap at 400
+const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 30; // Keeping the minimum XP for high-level items at 30
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -28,19 +29,22 @@ public:
 
         // Apply diminishing returns if the player's skill is much higher than the required skill
         uint32 skillDifference = currentSkill > requiredSkill ? currentSkill - requiredSkill : 0;
-        float skillMultiplier = skillDifference > 50 ? 0.1f : 1.0f - (skillDifference * 0.02f);
+        float skillMultiplier = skillDifference > 50 ? 0.55f : 1.0f - (skillDifference * 0.017f); // Increase diminishing returns slightly
 
         // Apply a scaling formula to reduce XP based on the player's level
-        float levelMultiplier = (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL);
+        float levelMultiplier = 0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL));
 
         // Calculate final XP with scaling and diminishing returns
         uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
 
-        // Ensure a minimum XP of 1 to avoid giving 0 XP
-        uint32 finalXP = std::max(scaledXP, 1u);
+        // Ensure a minimum XP for high-level items like Dreamfoil
+        if (baseXP > 250) // Base XP threshold for high-level items
+        {
+            scaledXP = std::max(scaledXP, MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM);
+        }
 
         // Cap the XP to avoid overflow or unreasonable values
-        return std::min(finalXP, MAX_EXPERIENCE_GAIN);
+        return std::min(scaledXP, MAX_EXPERIENCE_GAIN);
     }
 
     // Function to calculate bonus XP based on the player's skill vs the required skill
@@ -68,16 +72,57 @@ public:
             { 2770, 50 },  // Copper Ore
             { 2771, 100 }, // Tin Ore
             { 2772, 200 }, // Iron Ore (Higher level ore)
-            { 10620, 500 } // Thorium Ore (Rare/High level)
+            { 10620, 325 } // Thorium Ore (Slight reduction)
         };
 
         // Herbalism item XP values
         const std::map<uint32, uint32> herbalismItemsXP = {
-            { 765, 50 },   // Silverleaf
-            { 2447, 75 },  // Peacebloom
-            { 8836, 200 }, // Arthas' Tears (Rare herb)
-            { 13463, 300 } // Dreamfoil (High-level herb)
+            { 765, 50 },     // Silverleaf
+            { 2447, 75 },    // Peacebloom
+            { 2449, 100 },   // Earthroot
+            { 785, 100 },    // Mageroyal
+            { 2450, 125 },   // Briarthorn
+            { 2452, 150 },   // Swiftthistle
+            { 2453, 175 },   // Bruiseweed
+            { 3820, 200 },   // Stranglekelp
+            { 3355, 225 },   // Wild Steelbloom
+            { 3356, 250 },   // Kingsblood
+            { 3357, 275 },   // Liferoot
+            { 3369, 300 },   // Grave Moss
+            { 3818, 325 },   // Fadeleaf
+            { 3819, 350 },   // Wintersbite
+            { 3821, 375 },   // Goldthorn
+            { 3358, 400 },   // Khadgar's Whisker
+            { 4625, 450 },   // Firebloom
+            { 8831, 475 },   // Purple Lotus
+            { 8836, 500 },   // Arthas' Tears (Rare herb)
+            { 8838, 525 },   // Sungrass
+            { 8839, 550 },   // Blindweed
+            { 8845, 575 },   // Ghost Mushroom (Rare herb)
+            { 8846, 600 },   // Gromsblood
+            { 8153, 625 },   // Wildvine (Added)
+            { 13463, 650 },  // Dreamfoil
+            { 13464, 675 },  // Golden Sansam
+            { 13465, 700 },  // Mountain Silversage
+            { 13466, 725 },  // Plaguebloom
+            { 13467, 750 },  // Black Lotus (Super rare)
+            { 19726, 775 },  // Bloodvine (Added)
+            { 22785, 800 },  // Felweed
+            { 22786, 825 },  // Dreaming Glory
+            { 22787, 850 },  // Ragveil
+            { 22789, 875 },  // Terocone
+            { 22790, 900 },  // Ancient Lichen
+            { 22791, 925 },  // Netherbloom
+            { 22792, 950 },  // Nightmare Vine
+            { 22793, 975 },  // Mana Thistle
+            { 36901, 1000 }, // Goldclover
+            { 36903, 1025 }, // Adder's Tongue
+            { 36904, 1050 }, // Tiger Lily
+            { 36905, 1075 }, // Lichbloom
+            { 36906, 1100 }, // Icethorn
+            { 36907, 1125 }  // Talandra's Rose
         };
+
 
         // Check if the item is a mining item
         auto miningXP = miningItemsXP.find(itemId);
