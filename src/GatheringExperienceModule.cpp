@@ -69,11 +69,52 @@ public:
     {
         // Mining item XP values
         const std::map<uint32, uint32> miningItemsXP = {
-            { 2770, 50 },  // Copper Ore
-            { 2771, 100 }, // Tin Ore
-            { 2772, 200 }, // Iron Ore (Higher level ore)
-            { 10620, 325 } // Thorium Ore (Slight reduction)
+            { 2770, 50 },    // Copper Ore
+            { 2771, 100 },   // Tin Ore
+            { 2772, 200 },   // Iron Ore
+            { 2775, 150 },   // Silver Ore
+            { 2776, 250 },   // Gold Ore
+            { 3858, 300 },   // Mithril Ore
+            { 7911, 350 },   // Truesilver Ore
+            { 10620, 400 },  // Thorium Ore
+            { 23424, 425 },  // Fel Iron Ore
+            { 23425, 450 },  // Adamantite Ore
+            { 23426, 475 },  // Khorium Ore
+            { 36909, 500 },  // Cobalt Ore
+            { 36910, 525 },  // Titanium Ore (Rare/High-level)
+            { 36912, 550 },  // Saronite Ore
+            { 18562, 600 },  // Elementium Ore (Classic, rare ore)
+            { 22202, 575 },  // Small Obsidian Shard
+            { 22203, 625 },  // Large Obsidian Shard
+            { 12800, 650 },  // Azerothian Diamond
+            { 19774, 675 },  // Souldarite
+            { 12364, 700 },  // Huge Emerald
+            { 12363, 750 },  // Arcane Crystal
+            { 12799, 675 },  // Large Opal
+            { 12361, 700 },  // Blue Sapphire
+            { 7910, 625 },   // Star Ruby
+            { 11754, 600 },  // Black Diamond
+            { 7909, 650 },   // Aquamarine (Added)
+            { 11382, 800 },  // Blood of the Mountain (Added)
+            { 3864, 300 },   // Citrine (Added)
+            { 1705, 200 },   // Lesser Moonstone (Added)
+            { 1529, 175 },   // Jade (Added)
+            { 1210, 100 },   // Shadowgem (Added)
+            { 1206, 150 },   // Moss Agate (Added)
+            { 774, 50 },     // Malachite (Added)
+            { 818, 75 },     // Tigerseye (Added)
+            { 37701, 300 },  // Crystallized Earth
+            { 37702, 325 },  // Crystallized Fire
+            { 37703, 350 },  // Crystallized Shadow
+            { 37704, 375 },  // Crystallized Life
+            { 37705, 400 },  // Crystallized Water
+            { 7912, 125 },   // Solid Stone
+            { 2838, 75 },    // Heavy Stone
+            { 2836, 50 },    // Coarse Stone
+            { 12365, 200 },  // Dense Stone
+            { 11370, 375 },  // Dark Iron Ore
         };
+
 
         // Herbalism item XP values
         const std::map<uint32, uint32> herbalismItemsXP = {
