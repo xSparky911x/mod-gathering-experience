@@ -164,6 +164,27 @@ public:
             { 36907, 1125 }  // Talandra's Rose
         };
 
+        // Skinning item XP values (Leathers and hides)
+        const std::map<uint32, uint32> skinningItemsXP = {
+            { 2318, 50 },    // Light Leather
+            { 2319, 100 },   // Medium Leather
+            { 4234, 150 },   // Heavy Leather
+            { 4304, 200 },   // Thick Leather
+            { 8170, 250 },   // Rugged Leather
+            { 15417, 300 },  // Devilsaur Leather
+            { 15415, 325 },  // Blue Dragonscale
+            { 15416, 325 },  // Black Dragonscale
+            { 21887, 350 },  // Knothide Leather
+            { 25700, 375 },  // Fel Scales
+            { 25707, 400 },  // Fel Hide
+            { 33568, 425 },  // Borean Leather
+            { 38425, 450 },  // Heavy Borean Leather
+            { 44128, 475 },  // Arctic Fur (Rare)
+            { 17012, 375 },  // Core Leather (Molten Core, rare)
+            { 29539, 400 },  // Cobra Scales
+            { 29547, 400 },  // Wind Scales
+        };
+
 
         // Check if the item is a mining item
         auto miningXP = miningItemsXP.find(itemId);
@@ -175,6 +196,11 @@ public:
         if (herbXP != herbalismItemsXP.end())
             return herbXP->second;
 
+        // Check if the item is a skinning item
+        auto skinningXP = skinningItemsXP.find(itemId);
+        if (skinningXP != skinningItemsXP.end())
+            return skinningXP->second;
+
         // Default base XP if the item is not found in the above tables
         return 50; // Default to a low base XP
     }
@@ -184,43 +210,57 @@ public:
     {
         // Define rarity multipliers for high-end gathering items
         const std::map<uint32, float> rarityMultipliers = {
-            { 13463, 1.5f },  // Dreamfoil (example)
-            { 10620, 2.0f },  // Thorium Ore (rare)
+            // Uncommon items (multiplier: 1.2)
+            { 765, 1.2f },    // Silverleaf
+            { 2447, 1.2f },   // Peacebloom
+            { 3355, 1.2f },   // Wild Steelbloom
+            { 3356, 1.2f },   // Kingsblood
+            { 2318, 1.2f },   // Light Leather
+            { 2319, 1.2f },   // Medium Leather
+            { 4234, 1.2f },   // Heavy Leather
+
+            // Rare items (multiplier: 1.5)
+            { 13463, 1.5f },  // Dreamfoil
+            { 8836, 1.5f },   // Arthas' Tears
+            { 8838, 1.5f },   // Sungrass
+            { 15417, 1.5f },  // Devilsaur Leather
+            { 15416, 1.5f },  // Black Dragonscale
+            { 7911, 1.5f },   // Truesilver Ore
+            { 10620, 1.5f },  // Thorium Ore
+
+            // Super rare items (multiplier: 2.0+)
             { 13467, 3.0f },  // Black Lotus (super rare)
+            { 8845, 2.5f },   // Ghost Mushroom (super rare)
+            { 11382, 2.0f },  // Blood of the Mountain
+            { 7910, 2.0f },   // Star Ruby
+            { 12364, 2.0f },  // Huge Emerald
+            { 12800, 2.0f },  // Azerothian Diamond
+            { 12363, 2.5f },  // Arcane Crystal
+            { 22203, 2.0f },  // Large Obsidian Shard
         };
 
+        // Check if the item has a rarity multiplier
         auto rarity = rarityMultipliers.find(itemId);
         if (rarity != rarityMultipliers.end())
             return rarity->second;
 
-        // Default multiplier
+        // Default multiplier for common items
         return 1.0f;
     }
 
-    // Check if item is related to gathering (mining or herbalism)
+    // Check if the item is related to gathering (mining, herbalism, or skinning)
     bool IsGatheringItem(uint32 itemId)
     {
-        // Mining item XP values
-        const std::set<uint32> gatheringItems = {
-            2770, // Copper Ore
-            2771, // Tin Ore
-            2772, // Iron Ore
-            10620, // Thorium Ore
-            765,   // Silverleaf
-            2447,  // Peacebloom
-            8836,  // Arthas' Tears
-            13463  // Dreamfoil
-        };
-
-        return gatheringItems.find(itemId) != gatheringItems.end();
+        // Check if the item exists in mining, herbalism, or skinning XP maps
+        return GetGatheringBaseXP(itemId) > 0;
     }
 
-    // Hook for Mining and Herbalism (Looting a resource node)
+    // Hook for Mining, Herbalism, and Skinning (Looting a resource node or skinning)
     void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override
     {
         uint32 itemId = item->GetEntry();
 
-        // Ensure the looted item is part of a gathering profession (herbalism/mining)
+        // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning)
         if (!IsGatheringItem(itemId))
             return; // Skip non-gathering items
 
