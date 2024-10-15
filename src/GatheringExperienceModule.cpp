@@ -4,25 +4,16 @@
 #include "ObjectMgr.h"
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
-#include "Chat.h" // For sending custom messages
-#include "WorldPacket.h" // For sending loot notifications
 #include "Config.h" // For loading configuration values
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
+const uint32 MAX_EXPERIENCE_GAIN = 1000; // Define a reasonable cap for XP gained per gathering action
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
 public:
     GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") { }
-
-    void OnLogin(Player* player) override
-    {
-        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
-        {
-            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience|r module by Thaxtin.");
-        }
-    }
 
     // OnWorldInitialize hook to log that the module is loaded
     void OnBeforeConfigLoad(bool /*reload*/) override
@@ -30,16 +21,26 @@ public:
         LOG_INFO("module", "Gathering Experience Module Loaded");
     }
 
-    // Function to calculate scaled experience based on player level
-    uint32 CalculateExperience(Player* player, uint32 baseXP)
+    // Function to calculate scaled experience based on player level and item level
+    uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill)
     {
         uint32 playerLevel = player->GetLevel();
 
-        // Apply the scaling formula based on GATHERING_MAX_LEVEL
-        uint32 scaledXP = static_cast<uint32>(baseXP * (1.0 - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL));
+        // Apply diminishing returns if the player's skill is much higher than the required skill
+        uint32 skillDifference = currentSkill > requiredSkill ? currentSkill - requiredSkill : 0;
+        float skillMultiplier = skillDifference > 50 ? 0.1f : 1.0f - (skillDifference * 0.02f);
+
+        // Apply a scaling formula to reduce XP based on the player's level
+        float levelMultiplier = (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL);
+
+        // Calculate final XP with scaling and diminishing returns
+        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
 
         // Ensure a minimum XP of 1 to avoid giving 0 XP
-        return std::max(scaledXP, 1u);
+        uint32 finalXP = std::max(scaledXP, 1u);
+
+        // Cap the XP to avoid overflow or unreasonable values
+        return std::min(finalXP, MAX_EXPERIENCE_GAIN);
     }
 
     // Function to calculate bonus XP based on the player's skill vs the required skill
@@ -167,10 +168,10 @@ public:
         float rarityMultiplier = GetRarityMultiplier(itemId);
         uint32 finalXP = static_cast<uint32>(skillBasedXP * rarityMultiplier);
 
-        // Calculate scaled experience based on player's level
-        uint32 xp = CalculateExperience(player, finalXP);
+        // Calculate scaled experience based on player's level and skill difference
+        uint32 xp = CalculateExperience(player, finalXP, requiredSkill, currentSkill);
 
-        // Give the player the experience without any notifications
+        // Give the player the experience with the capped value
         player->GiveXP(xp, nullptr);
     }
 
@@ -194,10 +195,10 @@ public:
             // Apply skill-based XP bonus/penalty
             uint32 skillBasedXP = GetSkillBasedXP(baseXP, requiredSkill, currentSkill);
 
-            // Calculate scaled experience based on player's level
-            uint32 xp = CalculateExperience(player, skillBasedXP);
+            // Calculate scaled experience based on player's level and skill difference
+            uint32 xp = CalculateExperience(player, skillBasedXP, requiredSkill, currentSkill);
 
-            // Give the player the experience without any notifications
+            // Give the player the experience with the capped value
             player->GiveXP(xp, nullptr);
         }
     }
