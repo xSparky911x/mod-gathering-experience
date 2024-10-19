@@ -78,7 +78,11 @@ public:
         }
     }
 
+<<<<<<< HEAD
     // Function to get base XP for different mining, herbalism, skinning, and fishing items
+=======
+    // Function to get base XP for different mining ,herbalism items and skinning items
+>>>>>>> 7270fec (added skinning items and fine tuned xp rates)
     uint32 GetGatheringBaseXP(uint32 itemId)
     {
         // Mining item XP values
@@ -220,6 +224,7 @@ public:
             { 15423, 525 }   // Brilliant Chromatic Scale
         };
 
+<<<<<<< HEAD
         // Fishing item XP values
         const std::map<uint32, uint32> fishingItemsXP = {
             { 13754, 150 },  // Raw Glossy Mightfish
@@ -235,6 +240,8 @@ public:
             { 13760, 200 }   // Raw Sunscale Salmon
         };
 
+=======
+>>>>>>> 7270fec (added skinning items and fine tuned xp rates)
         // Check if the item is a mining item
         auto miningXP = miningItemsXP.find(itemId);
         if (miningXP != miningItemsXP.end())
@@ -286,8 +293,11 @@ public:
             { 10620, 1.5f },  // Thorium Ore
             { 44128, 1.5f },  // Arctic Fur
             { 15414, 1.5f },  // Red Dragonscale
+<<<<<<< HEAD
             { 13754, 1.5f },  // Raw Glossy Mightfish (Fishing)
             { 13758, 1.5f },  // Raw Redgill (Fishing)
+=======
+>>>>>>> 7270fec (added skinning items and fine tuned xp rates)
 
             // Super rare items (multiplier: 2.0+)
             { 13467, 3.0f },  // Black Lotus (super rare)
@@ -300,8 +310,12 @@ public:
             { 22203, 2.0f },  // Large Obsidian Shard
             { 15419, 2.5f },  // Pristine Hide of the Beast
             { 15410, 3.0f },  // Scale of Onyxia
+<<<<<<< HEAD
             { 15423, 2.5f },  // Brilliant Chromatic Scale
             { 13926, 3.0f }   // Golden Pearl (Fishing)
+=======
+            { 15423, 2.5f }   // Brilliant Chromatic Scale
+>>>>>>> 7270fec (added skinning items and fine tuned xp rates)
         };
 
         // Check if the item has a rarity multiplier
@@ -325,7 +339,11 @@ public:
     {
         uint32 itemId = item->GetEntry();  // Get the item ID
 
+<<<<<<< HEAD
         // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning/fishing)
+=======
+        // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning)
+>>>>>>> 7270fec (added skinning items and fine tuned xp rates)
         uint32 baseXP = GetGatheringBaseXP(itemId);
         if (baseXP == 0)
             return; // Skip non-gathering items
