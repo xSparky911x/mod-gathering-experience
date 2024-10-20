@@ -9,6 +9,7 @@
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 300; // Adjusted the XP cap to 300
+const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 30; // Keeping the minimum XP for high-level items at 30
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -77,7 +78,7 @@ public:
         }
     }
 
-    // Function to get base XP for different mining, herbalism, skinning, and fishing items
+    // Function to get base XP for different mining ,herbalism items and skinning items
     uint32 GetGatheringBaseXP(uint32 itemId)
     {
         // Mining item XP values
@@ -219,21 +220,6 @@ public:
             { 15423, 525 }   // Brilliant Chromatic Scale
         };
 
-        // Fishing item XP values
-        const std::map<uint32, uint32> fishingItemsXP = {
-            { 13754, 150 },  // Raw Glossy Mightfish
-            { 13758, 175 },  // Raw Redgill
-            { 13893, 200 },  // Large Raw Mightfish
-            { 13926, 250 },  // Golden Pearl
-            { 7974, 50 },    // Zesty Clam Meat
-            { 13889, 175 },  // Raw Whitescale Salmon
-            { 6358, 125 },   // Oily Blackmouth
-            { 6359, 150 },   // Firefin Snapper
-            { 13422, 225 },  // Stonescale Eel
-            { 4603, 100 },   // Raw Spotted Yellowtail
-            { 13760, 200 }   // Raw Sunscale Salmon
-        };
-
         // Check if the item is a mining item
         auto miningXP = miningItemsXP.find(itemId);
         if (miningXP != miningItemsXP.end())
@@ -248,11 +234,6 @@ public:
         auto skinningXP = skinningItemsXP.find(itemId);
         if (skinningXP != skinningItemsXP.end())
             return skinningXP->second;
-
-        // Check if the item is a fishing item
-        auto fishingXP = fishingItemsXP.find(itemId);
-        if (fishingXP != fishingItemsXP.end())
-            return fishingXP->second;
 
         // Default base XP if the item is not found in the above tables
         return 0; // Default to 0 XP for non-gathering items
@@ -285,8 +266,6 @@ public:
             { 10620, 1.5f },  // Thorium Ore
             { 44128, 1.5f },  // Arctic Fur
             { 15414, 1.5f },  // Red Dragonscale
-            { 13754, 1.5f },  // Raw Glossy Mightfish (Fishing)
-            { 13758, 1.5f },  // Raw Redgill (Fishing)
 
             // Super rare items (multiplier: 2.0+)
             { 13467, 3.0f },  // Black Lotus (super rare)
@@ -299,8 +278,7 @@ public:
             { 22203, 2.0f },  // Large Obsidian Shard
             { 15419, 2.5f },  // Pristine Hide of the Beast
             { 15410, 3.0f },  // Scale of Onyxia
-            { 15423, 2.5f },  // Brilliant Chromatic Scale
-            { 13926, 3.0f }   // Golden Pearl (Fishing)
+            { 15423, 2.5f }   // Brilliant Chromatic Scale
         };
 
         // Check if the item has a rarity multiplier
@@ -312,10 +290,10 @@ public:
         return 1.0f;
     }
 
-    // Check if the item is related to gathering (mining, herbalism, skinning, or fishing)
+    // Check if the item is related to gathering (mining, herbalism, or skinning)
     bool IsGatheringItem(uint32 itemId)
     {
-        // Check if the item exists in mining, herbalism, skinning, or fishing XP maps
+        // Check if the item exists in mining, herbalism, or skinning XP maps
         return GetGatheringBaseXP(itemId) > 0;
     }
 
@@ -324,7 +302,7 @@ public:
     {
         uint32 itemId = item->GetEntry();  // Get the item ID
 
-        // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning/fishing)
+        // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning)
         uint32 baseXP = GetGatheringBaseXP(itemId);
         if (baseXP == 0)
             return; // Skip non-gathering items
@@ -333,7 +311,7 @@ public:
         uint32 currentSkill = 0;
         uint32 requiredSkill = 0;
 
-        // Determine if this is a mining, herbalism, or fishing node
+        // Determine if this is a mining or herbalism node
         if (player->HasSkill(SKILL_MINING))
         {
             currentSkill = player->GetSkillValue(SKILL_MINING);
@@ -343,11 +321,6 @@ public:
         {
             currentSkill = player->GetSkillValue(SKILL_HERBALISM);
             requiredSkill = (itemId == 765) ? 1 : (itemId == 13463) ? 150 : 50;
-        }
-        else if (player->HasSkill(SKILL_FISHING))
-        {
-            currentSkill = player->GetSkillValue(SKILL_FISHING);
-            requiredSkill = 1; // Fishing does not typically have different skill requirements for specific fish
         }
         else
         {
