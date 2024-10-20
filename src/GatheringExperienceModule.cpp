@@ -87,6 +87,7 @@ public:
     {
         // Mining item XP values
         const std::map<uint32, uint32> miningItemsXP = {
+<<<<<<< HEAD
             { 2770, 50 },    // Copper Ore
             { 2771, 100 },   // Tin Ore
             { 2772, 200 },   // Iron Ore
@@ -131,6 +132,12 @@ public:
             { 2836, 50 },    // Coarse Stone
             { 12365, 100 },  // Dense Stone
             { 11370, 375 },  // Dark Iron Ore
+=======
+            { 2770, 50 },  // Copper Ore
+            { 2771, 100 }, // Tin Ore
+            { 2772, 200 }, // Iron Ore (Higher level ore)
+            { 10620, 325 } // Thorium Ore (Slight reduction)
+>>>>>>> parent of f2a76d3 (added more ores)
         };
 
         // Herbalism item XP values
