@@ -9,7 +9,6 @@
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 300; // Adjusted the XP cap to 300
-const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 30; // Keeping the minimum XP for high-level items at 30
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
