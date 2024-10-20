@@ -321,6 +321,7 @@ public:
 
     // Hook for Mining and Herbalism (Looting a resource node)
     void OnLootItem(Player* player, Item* item, uint32 /*count*/, ObjectGuid /*lootguid*/) override
+    
     {
         uint32 itemId = item->GetEntry();  // Get the item ID
 
