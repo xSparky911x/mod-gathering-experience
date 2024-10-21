@@ -4,7 +4,8 @@
 #include "ObjectMgr.h"
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
-#include "Config.h" // For loading configuration values
+#include "Config.h"
+#include "Chat.h"
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
@@ -19,6 +20,14 @@ public:
     void OnBeforeConfigLoad(bool /*reload*/) override
     {
         LOG_INFO("module", "Gathering Experience Module Loaded");
+    }
+
+    void OnLogin(Player* player) override
+    {
+        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience|r module by Thaxtin.");
+        }
     }
 
     // Function to calculate scaled experience based on player level and item base XP
@@ -36,8 +45,10 @@ public:
         // Calculate final XP with scaling and diminishing returns
         uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
 
-        // Debug logging to see values in the console
-        LOG_INFO("module", "ItemId: %u, BaseXP: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, ScaledXP: %u", itemId, baseXP, skillMultiplier, levelMultiplier, scaledXP);
+        // Manually format the log message
+        char logMessage[256];
+        snprintf(logMessage, sizeof(logMessage), "ItemId: %u, BaseXP: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, ScaledXP: %u", itemId, baseXP, skillMultiplier, levelMultiplier, scaledXP);
+        LOG_INFO("module", "%s", logMessage);
 
         // Cap for high-level items like Thorium, Star Ruby
         if (baseXP > 350)  // High-level items like Thorium, Arcane Crystal, etc.
@@ -72,187 +83,224 @@ public:
         else
         {
             // Penalize XP if the node is too easy but keep a minimum XP threshold
-            uint32 penaltyXP = (currentSkill - requiredSkill) * 1; // XP penalty scaling
-            return std::max(baseXP - penaltyXP, 1u); // Ensure at least 1 XP is given
+            uint32 penaltyXP = (currentSkill - requiredSkill) * 0.5; // Reduced penalty scaling
+            return std::max(baseXP - penaltyXP, 10u); // Ensure at least 10 XP is given
         }
     }
 
     // Function to get base XP for different mining, herbalism, skinning, and fishing items
     uint32 GetGatheringBaseXP(uint32 itemId)
     {
-        // Mining item XP values
-        const std::map<uint32, uint32> miningItemsXP = {
-            { 2770, 50 },    // Copper Ore
-            { 2771, 100 },   // Tin Ore
-            { 2772, 200 },   // Iron Ore
-            { 2775, 150 },   // Silver Ore
-            { 2776, 250 },   // Gold Ore
-            { 3858, 400 },   // Mithril Ore
-            { 7911, 350 },   // Truesilver Ore
-            { 10620, 400 },  // Thorium Ore
-            { 23424, 425 },  // Fel Iron Ore
-            { 23425, 450 },  // Adamantite Ore
-            { 23426, 475 },  // Khorium Ore
-            { 36909, 500 },  // Cobalt Ore
-            { 36910, 525 },  // Titanium Ore (Rare/High-level)
-            { 36912, 550 },  // Saronite Ore
-            { 18562, 600 },  // Elementium Ore (Classic, rare ore)
-            { 22202, 575 },  // Small Obsidian Shard
-            { 22203, 625 },  // Large Obsidian Shard
-            { 12800, 650 },  // Azerothian Diamond
-            { 19774, 675 },  // Souldarite
-            { 12364, 700 },  // Huge Emerald
-            { 12363, 750 },  // Arcane Crystal
-            { 12799, 675 },  // Large Opal
-            { 12361, 700 },  // Blue Sapphire
-            { 7910, 625 },   // Star Ruby
-            { 11754, 600 },  // Black Diamond
-            { 7909, 650 },   // Aquamarine (Added)
-            { 11382, 800 },  // Blood of the Mountain (Added)
-            { 3864, 300 },   // Citrine (Added)
-            { 1705, 200 },   // Lesser Moonstone (Added)
-            { 1529, 175 },   // Jade (Added)
-            { 1210, 100 },   // Shadowgem (Added)
-            { 1206, 150 },   // Moss Agate (Added)
-            { 774, 50 },     // Malachite (Added)
-            { 818, 75 },     // Tigerseye (Added)
-            { 37701, 300 },  // Crystallized Earth
-            { 37702, 325 },  // Crystallized Fire
-            { 37703, 350 },  // Crystallized Shadow
-            { 37704, 375 },  // Crystallized Life
-            { 37705, 400 },  // Crystallized Water
-            { 7912, 125 },   // Solid Stone
-            { 2838, 75 },    // Heavy Stone
-            { 2836, 50 },    // Coarse Stone
-            { 12365, 100 },  // Dense Stone
-            { 11370, 375 },  // Dark Iron Ore
+        // Define a map for mining items with base XP and required skill
+        const std::map<uint32, std::pair<uint32, uint32>> miningItems = {
+            { 2770, {50, 1} },    // Copper Ore
+            { 774, {50, 1} },     // Malachite
+            { 2836, {50, 1} },    // Coarse Stone
+            { 818, {75, 1} },     // Tigerseye
+            { 2838, {75, 1} },    // Heavy Stone
+            { 2771, {100, 65} },  // Tin Ore
+            { 2776, {150, 65} },  // Incendicite Ore
+            { 2775, {150, 75} },  // Silver Ore
+            { 1210, {100, 100} }, // Shadowgem
+            { 12365, {100, 100} }, // Dense Stone
+            { 1206, {150, 100} }, // Moss Agate
+            { 1529, {175, 100} }, // Jade
+            { 1705, {200, 100} }, // Lesser Moonstone
+            { 3864, {300, 100} }, // Citrine
+            { 37701, {300, 100} }, // Crystallized Earth
+            { 37702, {325, 100} }, // Crystallized Fire
+            { 37703, {350, 100} }, // Crystallized Shadow
+            { 37704, {375, 100} }, // Crystallized Life
+            { 37705, {400, 100} }, // Crystallized Water
+            { 7912, {125, 100} }, // Solid Stone
+            { 2772, {200, 125} }, // Iron Ore
+            { 2776, {250, 155} }, // Gold Ore
+            { 3858, {400, 175} }, // Mithril Ore
+            { 7911, {350, 205} }, // Truesilver Ore
+            { 11754, {600, 200} }, // Black Diamond
+            { 19774, {675, 200} }, // Souldarite
+            { 12799, {675, 200} }, // Large Opal
+            { 7910, {625, 200} }, // Star Ruby
+            { 7909, {650, 200} }, // Aquamarine
+            { 12361, {700, 250} }, // Blue Sapphire
+            { 12364, {700, 250} }, // Huge Emerald
+            { 12363, {750, 250} }, // Arcane Crystal
+            { 11370, {375, 230} }, // Dark Iron Ore
+            { 10620, {400, 230} }, // Thorium Ore
+            { 23424, {425, 275} }, // Fel Iron Ore
+            { 23425, {450, 325} }, // Adamantite Ore
+            { 36909, {500, 350} }, // Cobalt Ore
+            { 36909, {500, 375} }, // Rich Cobalt Deposit
+            { 23426, {475, 375} }, // Khorium Ore
+            { 11382, {800, 375} }, // Blood of the Mountain
+            { 36912, {550, 400} }, // Saronite Ore
+            { 36912, {550, 425} }, // Rich Saronite Deposit
+            { 36910, {525, 450} }, // Titanium Ore (Rare/High-level)
+            { 36910, {525, 450} }, // Pure Saronite Deposit
+            { 12800, {650, 300} }, // Azerothian Diamond
+            { 22202, {575, 305} }, // Small Obsidian Shard
+            { 22203, {625, 305} }, // Large Obsidian Shard
+            { 18562, {600, 305} }, // Elementium Ore (Classic, rare ore)
         };
 
-        // Herbalism item XP values
-        const std::map<uint32, uint32> herbalismItemsXP = {
-            { 765, 50 },     // Silverleaf
-            { 2447, 75 },    // Peacebloom
-            { 2449, 100 },   // Earthroot
-            { 785, 100 },    // Mageroyal
-            { 2450, 125 },   // Briarthorn
-            { 2452, 150 },   // Swiftthistle
-            { 2453, 175 },   // Bruiseweed
-            { 3820, 200 },   // Stranglekelp
-            { 3355, 225 },   // Wild Steelbloom
-            { 3356, 250 },   // Kingsblood
-            { 3357, 275 },   // Liferoot
-            { 3369, 300 },   // Grave Moss
-            { 3818, 325 },   // Fadeleaf
-            { 3819, 350 },   // Wintersbite
-            { 3821, 375 },   // Goldthorn
-            { 3358, 400 },   // Khadgar's Whisker
-            { 4625, 450 },   // Firebloom
-            { 8831, 475 },   // Purple Lotus
-            { 8836, 500 },   // Arthas' Tears (Rare herb)
-            { 8838, 525 },   // Sungrass
-            { 8839, 550 },   // Blindweed
-            { 8845, 575 },   // Ghost Mushroom (Rare herb)
-            { 8846, 600 },   // Gromsblood
-            { 8153, 625 },   // Wildvine (Added)
-            { 13463, 650 },  // Dreamfoil
-            { 13464, 675 },  // Golden Sansam
-            { 13465, 700 },  // Mountain Silversage
-            { 13466, 725 },  // Plaguebloom
-            { 13467, 750 },  // Black Lotus (Super rare)
-            { 19726, 775 },  // Bloodvine (Added)
-            { 22785, 800 },  // Felweed
-            { 22786, 825 },  // Dreaming Glory
-            { 22787, 850 },  // Ragveil
-            { 22789, 875 },  // Terocone
-            { 22790, 900 },  // Ancient Lichen
-            { 22791, 925 },  // Netherbloom
-            { 22792, 950 },  // Nightmare Vine
-            { 22793, 975 },  // Mana Thistle
-            { 36901, 1000 }, // Goldclover
-            { 36903, 1025 }, // Adder's Tongue
-            { 36904, 1050 }, // Tiger Lily
-            { 36905, 1075 }, // Lichbloom
-            { 36906, 1100 }, // Icethorn
-            { 36907, 1125 }  // Talandra's Rose
+        // Define a map for herbalism items with base XP and required skill
+        const std::map<uint32, std::pair<uint32, uint32>> herbalismItems = {
+            { 765, {50, 1} },     // Silverleaf
+            { 2447, {75, 1} },    // Peacebloom
+            { 2449, {100, 15} },  // Earthroot
+            { 785, {100, 50} },   // Mageroyal
+            { 2450, {125, 70} },  // Briarthorn
+            { 3820, {200, 85} },  // Stranglekelp
+            { 2453, {175, 100} }, // Bruiseweed
+            { 3355, {225, 115} }, // Wild Steelbloom
+            { 3369, {300, 120} }, // Grave Moss
+            { 3356, {250, 125} }, // Kingsblood
+            { 3357, {275, 150} }, // Liferoot
+            { 3818, {325, 160} }, // Fadeleaf
+            { 3821, {375, 170} }, // Goldthorn
+            { 3358, {400, 185} }, // Khadgar's Whisker
+            { 3819, {350, 195} }, // Wintersbite
+            { 4625, {450, 205} }, // Firebloom
+            { 8831, {475, 210} }, // Purple Lotus
+            { 8836, {500, 220} }, // Arthas' Tears
+            { 8838, {525, 230} }, // Sungrass
+            { 8839, {550, 235} }, // Blindweed
+            { 8845, {575, 245} }, // Ghost Mushroom
+            { 8846, {600, 250} }, // Gromsblood
+            { 13464, {675, 260} }, // Golden Sansam
+            { 13463, {650, 270} }, // Dreamfoil
+            { 13465, {700, 280} }, // Mountain Silversage
+            { 13466, {725, 285} }, // Plaguebloom
+            { 13467, {750, 300} }, // Black Lotus
+            { 22785, {800, 300} }, // Felweed
+            { 22786, {825, 315} }, // Dreaming Glory
+            { 22787, {850, 325} }, // Ragveil
+            { 22789, {875, 325} }, // Terocone
+            { 22790, {900, 340} }, // Ancient Lichen
+            { 36901, {1000, 350} }, // Goldclover
+            { 22791, {925, 350} }, // Netherbloom
+            { 39970, {1150, 360} }, // Firethorn
+            { 22792, {950, 365} }, // Nightmare Vine
+            { 22793, {975, 375} }, // Mana Thistle
+            { 36903, {1025, 375} }, // Adder's Tongue
+            { 36904, {1050, 375} }, // Tiger Lily
+            { 36907, {1125, 385} }, // Talandra's Rose
+            { 39970, {1175, 400} }, // Frozen Herb
+            { 39970, {1200, 415} }, // Frozen Herb
+            { 36905, {1075, 425} }, // Lichbloom
+            { 36906, {1100, 435} }, // Icethorn
+            { 39970, {1225, 450} } // Frost Lotus
         };
 
-        // Skinning item XP values (Leathers, hides, and scales)
-        const std::map<uint32, uint32> skinningItemsXP = {
-            { 2318, 50 },    // Light Leather
-            { 2319, 100 },   // Medium Leather
-            { 4234, 150 },   // Heavy Leather
-            { 4304, 200 },   // Thick Leather
-            { 8170, 250 },   // Rugged Leather
-            { 15417, 300 },  // Devilsaur Leather
-            { 15415, 325 },  // Blue Dragonscale
-            { 15416, 325 },  // Black Dragonscale
-            { 21887, 350 },  // Knothide Leather
-            { 25700, 375 },  // Fel Scales
-            { 25707, 400 },  // Fel Hide
-            { 33568, 425 },  // Borean Leather
-            { 38425, 450 },  // Heavy Borean Leather
-            { 44128, 475 },  // Arctic Fur (Rare)
-            { 17012, 375 },  // Core Leather (Molten Core, rare)
-            { 29539, 400 },  // Cobra Scales
-            { 29547, 400 },  // Wind Scales
-            { 2934, 25 },    // Ruined Leather Scraps
-            { 783, 75 },     // Light Hide
-            { 4232, 125 },   // Medium Hide
-            { 4235, 175 },   // Heavy Hide
-            { 8169, 225 },   // Thick Hide
-            { 8171, 275 },   // Rugged Hide
-            { 6470, 100 },   // Deviate Scale
-            { 6471, 150 },   // Perfect Deviate Scale
-            { 5784, 125 },   // Slimy Murloc Scale
-            { 7286, 175 },   // Black Whelp Scale
-            { 7287, 200 },   // Red Whelp Scale
-            { 5785, 225 },   // Thick Murloc Scale
-            { 8154, 250 },   // Scorpid Scale
-            { 15408, 300 },  // Heavy Scorpid Scale
-            { 15414, 350 },  // Red Dragonscale
-            { 15412, 375 },  // Green Dragonscale
-            { 15417, 400 },  // Blue Dragonscale
-            { 15416, 425 },  // Black Dragonscale (Elite)
-            { 15417, 450 },  // Devilsaur Leather (Elite)
-            { 15419, 475 },  // Pristine Hide of the Beast
-            { 15410, 500 },  // Scale of Onyxia
-            { 15423, 525 }   // Brilliant Chromatic Scale
+        // Define a map for skinning items with base XP and required skill
+        const std::map<uint32, std::pair<uint32, uint32>> skinningItems = {
+            { 2934, {1, 1} },     // Ruined Leather Scraps
+            { 2318, {1, 1} },     // Light Leather
+            { 783, {1, 1} },      // Light Hide
+            { 33568, {350, 1} },  // Borean Leather
+            { 33567, {350, 1} },  // Borean Leather Scraps
+            { 38557, {375, 1} },  // Icy Dragonscale
+            { 38558, {375, 1} },  // Nerubian Chitin
+            { 38561, {385, 1} },  // Jormungar Scale
+            { 44128, {400, 1} },  // Arctic Fur
+            { 6470, {10, 10} },   // Deviate Scale
+            { 6471, {10, 10} },   // Perfect Deviate Scale
+            { 4232, {10, 10} },   // Medium Hide
+            { 17057, {20, 20} },  // Shiny Fish Scales
+            { 2319, {10, 50} },   // Medium Leather
+            { 7286, {70, 70} },   // Black Whelp Scale
+            { 4235, {100, 105} }, // Heavy Hide
+            { 7287, {115, 115} }, // Red Whelp Scale
+            { 4234, {100, 125} }, // Heavy Leather
+            { 7392, {170, 170} }, // Green Whelp Scale
+            { 4304, {150, 180} }, // Thick Leather
+            { 8169, {150, 180} }, // Thick Hide
+            { 8154, {185, 185} }, // Scorpid Scale
+            { 15412, {285, 205} },// Green Dragonscale
+            { 8170, {200, 215} }, // Rugged Leather
+            { 8171, {200, 235} }, // Rugged Hide
+            { 15415, {285, 250} },// Blue Dragonscale
+            { 15416, {285, 250} },// Black Dragonscale
+            { 15408, {260, 260} },// Heavy Scorpid Scale
+            { 21887, {300, 265} },// Knothide Leather
+            { 25649, {300, 265} },// Knothide Leather Scraps
+            { 15417, {275, 270} },// Devilsaur Leather
+            { 15414, {285, 285} },// Red Dragonscale
+            { 25707, {350, 290} },// Fel Hide
+            { 25700, {350, 295} }// Fel Scales
         };
 
-        // Fishing item XP values
-        const std::map<uint32, uint32> fishingItemsXP = {
-            { 13754, 150 },  // Raw Glossy Mightfish
-            { 13758, 175 },  // Raw Redgill
-            { 13893, 200 },  // Large Raw Mightfish
-            { 13926, 250 },  // Golden Pearl
-            { 7974, 50 },    // Zesty Clam Meat
-            { 13889, 175 },  // Raw Whitescale Salmon
-            { 6358, 125 },   // Oily Blackmouth
-            { 6359, 150 },   // Firefin Snapper
-            { 13422, 225 },  // Stonescale Eel
-            { 4603, 100 },   // Raw Spotted Yellowtail
-            { 13760, 200 }   // Raw Sunscale Salmon
+        // Define a map for fishing items with base XP and required skill
+        const std::map<uint32, std::pair<uint32, uint32>> fishingItems = {
+            { 6303, {1, 1} },     // Raw Slitherskin Mackerel
+            { 6291, {1, 1} },     // Raw Brilliant Smallfish
+            { 6308, {25, 1} },    // Raw Bristle Whisker Catfish
+            { 6361, {50, 1} },    // Raw Rainbow Fin Albacore
+            { 7974, {50, 1} },    // Zesty Clam Meat
+            { 6289, {75, 1} },    // Raw Longjaw Mud Snapper
+            { 6317, {75, 1} },    // Raw Loch Frenzy
+            { 6358, {100, 1} },   // Oily Blackmouth
+            { 4603, {100, 1} },   // Raw Spotted Yellowtail
+            { 6362, {125, 1} },   // Raw Rockscale Cod
+            { 6359, {150, 1} },   // Firefin Snapper
+            { 13754, {150, 1} },  // Raw Glossy Mightfish
+            { 13758, {175, 1} },  // Raw Redgill
+            { 13889, {175, 1} },  // Raw Whitescale Salmon
+            { 13760, {200, 1} },  // Raw Sunscale Salmon
+            { 13893, {200, 1} },  // Large Raw Mightfish
+            { 13422, {225, 1} },  // Stonescale Eel
+            { 13926, {250, 1} },  // Golden Pearl
+            { 21071, {275, 1} },  // Raw Sagefish
+            { 21153, {300, 1} },  // Raw Greater Sagefish
+            { 27422, {300, 1} },  // Barbed Gill Trout
+            { 27425, {300, 1} },  // Spotted Feltail
+            { 27429, {325, 1} },  // Zangarian Sporefish
+            { 27435, {350, 1} },  // Figluster's Mudfish
+            { 27437, {350, 1} },  // Icefin Bluefish
+            { 27438, {375, 1} },  // Golden Darter
+            { 27439, {375, 1} },  // Furious Crawdad
+            { 27516, {375, 1} },  // Enormous Barbed Gill Trout
+            { 33823, {400, 1} },  // Bloodfin Catfish
+            { 33824, {400, 1} },  // Crescent-Tail Skullfish
+            { 41800, {400, 1} },  // Deep Sea Monsterbelly
+            { 41801, {400, 1} },  // Moonglow Cuttlefish
+            { 41802, {425, 1} },  // Imperial Manta Ray
+            { 41803, {425, 1} },  // Rockfin Grouper
+            { 41805, {450, 1} },  // Borean Man O' War
+            { 41806, {450, 1} },  // Musselback Sculpin
+            { 41807, {475, 1} },  // Dragonfin Angelfish
+            { 41808, {475, 1} },  // Bonescale Snapper
+            { 41809, {500, 1} },  // Glacial Salmon
+            { 41810, {500, 1} },  // Fangtooth Herring
+            { 43572, {425, 1} },  // Nettlefish
+            { 45902, {450, 1} },  // Sewer Carp
         };
 
         // Check if the item is a mining item
-        auto miningXP = miningItemsXP.find(itemId);
-        if (miningXP != miningItemsXP.end())
-            return miningXP->second;
+        auto miningXP = miningItems.find(itemId);
+        if (miningXP != miningItems.end())
+            return miningXP->second.first;
 
         // Check if the item is a herbalism item
-        auto herbXP = herbalismItemsXP.find(itemId);
-        if (herbXP != herbalismItemsXP.end())
-            return herbXP->second;
+        auto herbXP = herbalismItems.find(itemId);
+        if (herbXP != herbalismItems.end())
+            return herbXP->second.first;
 
         // Check if the item is a skinning item
-        auto skinningXP = skinningItemsXP.find(itemId);
-        if (skinningXP != skinningItemsXP.end())
-            return skinningXP->second;
+        auto skinningXP = skinningItems.find(itemId);
+        if (skinningXP != skinningItems.end())
+            return skinningXP->second.first;
 
         // Check if the item is a fishing item
-        auto fishingXP = fishingItemsXP.find(itemId);
-        if (fishingXP != fishingItemsXP.end())
-            return fishingXP->second;
+        auto fishingXP = fishingItems.find(itemId);
+        if (fishingXP != fishingItems.end())
+        {
+            // Manually format the log message for fishing items
+            char logMessage[256];
+            snprintf(logMessage, sizeof(logMessage), "Fishing Item ID: %u, Base XP: %u", itemId, fishingXP->second.first);
+            LOG_INFO("module", "%s", logMessage); // Log fishing item base XP
+            return fishingXP->second.first; // Ensure this returns the correct base XP for fishing items
+        }
 
         // Default base XP if the item is not found in the above tables
         return 0; // Default to 0 XP for non-gathering items
@@ -321,14 +369,20 @@ public:
 
     // Hook for Mining and Herbalism (Looting a resource node)
     void OnLootItem(Player* player, Item* item, uint32 /*count*/, ObjectGuid /*lootguid*/) override
-    
     {
         uint32 itemId = item->GetEntry();  // Get the item ID
+        LOG_INFO("module", "OnLootItem called for Item ID: %u", itemId); // Confirm function call
 
         // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning/fishing)
         uint32 baseXP = GetGatheringBaseXP(itemId);
+        char logMessage[256];
+        snprintf(logMessage, sizeof(logMessage), "Item ID: %u, Base XP: %u", itemId, baseXP);
+        LOG_INFO("module", "%s", logMessage); // Debug log for item ID and base XP
         if (baseXP == 0)
+        {
+            LOG_INFO("module", "Item ID: %u is not a gathering item.", itemId); // Log if item is not a gathering item
             return; // Skip non-gathering items
+        }
 
         // Get the player's current skill level in the appropriate profession
         uint32 currentSkill = 0;
@@ -339,31 +393,55 @@ public:
         {
             currentSkill = player->GetSkillValue(SKILL_MINING);
             requiredSkill = (itemId == 2770) ? 1 : (itemId == 10620) ? 200 : 50;
+            snprintf(logMessage, sizeof(logMessage), "Mining: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
+            LOG_INFO("module", "%s", logMessage);
         }
         else if (player->HasSkill(SKILL_HERBALISM))
         {
             currentSkill = player->GetSkillValue(SKILL_HERBALISM);
             requiredSkill = (itemId == 765) ? 1 : (itemId == 13463) ? 150 : 50;
+            snprintf(logMessage, sizeof(logMessage), "Herbalism: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
+            LOG_INFO("module", "%s", logMessage);
         }
         else if (player->HasSkill(SKILL_FISHING))
         {
             currentSkill = player->GetSkillValue(SKILL_FISHING);
             requiredSkill = 1; // Fishing does not typically have different skill requirements for specific fish
+            snprintf(logMessage, sizeof(logMessage), "Fishing: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
+            LOG_INFO("module", "%s", logMessage);
         }
         else
         {
+            LOG_INFO("module", "No gathering skill found for player.");
             return; // No gathering skill, exit
         }
 
         // Apply the skill-based XP bonus/penalty
         uint32 skillBasedXP = GetSkillBasedXP(baseXP, requiredSkill, currentSkill);
+        snprintf(logMessage, sizeof(logMessage), "Skill Based XP: %u", skillBasedXP);
+        LOG_INFO("module", "%s", logMessage); // Debug log for skill-based XP
 
         // Apply rarity multiplier
         float rarityMultiplier = GetRarityMultiplier(itemId);
         uint32 finalXP = static_cast<uint32>(skillBasedXP * rarityMultiplier);
+        snprintf(logMessage, sizeof(logMessage), "Final XP before scaling: %u, Rarity Multiplier: %.2f", finalXP, rarityMultiplier);
+        LOG_INFO("module", "%s", logMessage); // Debug log for final XP
 
-        // Calculate scaled experience based on player's level and skill difference, now with itemId
-        uint32 xp = CalculateExperience(player, finalXP, requiredSkill, currentSkill, itemId);
+        // Calculate Skill and Level Multipliers
+        uint32 playerLevel = player->GetLevel();
+        uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
+        float skillMultiplier = 1.0f - (skillDifference * 0.02f); // Slight penalty: 2% reduction per skill point over
+        float levelMultiplier = 0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL));
+
+        // Calculate scaled experience
+        uint32 scaledXP = static_cast<uint32>(finalXP * skillMultiplier * levelMultiplier);
+        snprintf(logMessage, sizeof(logMessage), "ItemId: %u, BaseXP: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, ScaledXP: %u", itemId, baseXP, skillMultiplier, levelMultiplier, scaledXP);
+        LOG_INFO("module", "%s", logMessage); // Debug log for scaled XP
+
+        // Calculate final XP to give
+        uint32 xp = std::min(scaledXP, MAX_EXPERIENCE_GAIN); // Cap the XP if necessary
+        snprintf(logMessage, sizeof(logMessage), "Calculated XP to give: %u", xp);
+        LOG_INFO("module", "%s", logMessage); // Debug log for calculated XP
 
         // Give the player the experience with the capped value
         player->GiveXP(xp, nullptr);
@@ -372,10 +450,6 @@ public:
     // Hook for Skinning (When the player skins a creature)
     void OnKillCreature(Player* player, Creature* creature)
     {
-        // Check if the GatheringExperience module is enabled
-        if (!sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
-            return; // Exit if the module is disabled
-
         // Check if the player can skin the creature and if it's a beast (skinnable creatures)
         if (player->HasSkill(SKILL_SKINNING) && creature->GetCreatureType() == CREATURE_TYPE_BEAST && creature->loot.isLooted())
         {
@@ -405,7 +479,11 @@ public:
 // Register the script so AzerothCore knows to use it
 void AddGatheringExperienceModuleScripts()
 {
-    new GatheringExperienceModule();
+    // Check if the GatheringExperience module is enabled
+    if (sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
+    {
+        new GatheringExperienceModule(); // Only register the module if enabled
+    }
 }
 
 void Addmod_gathering_experience()

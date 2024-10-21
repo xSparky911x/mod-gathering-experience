@@ -8,12 +8,12 @@
 # Gathering Experience module configuration
 #####################################################
 #
-#    GatheringExperienceConfig.Enable
+#    GatheringExperience.Enable
 #        Description: Enable to skip the Gathering Experience module
 #        Default:     1 - Enabled
 #                     0 - Disabled
 #
-#    GatheringExperienceConfig.Announce 
+#    GatheringExperience.Announce 
 #        Description: Inform the player about the loaded module
 #        Default:     1 - Enabled
 #                     0 - Disabled
