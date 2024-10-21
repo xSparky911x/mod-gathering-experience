@@ -10,7 +10,7 @@
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
-const uint32 MAX_EXPERIENCE_GAIN = 2500;
+const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 10;
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
@@ -63,12 +63,15 @@ public:
         float levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
                                 (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
 
-        // Calculate final XP with scaling and diminishing returns
-        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
+        // Get rarity multiplier
+        float rarityMultiplier = GetRarityMultiplier(itemId);
+
+        // Calculate final XP with scaling, diminishing returns, and rarity multiplier
+        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
 
         // Debug logging to see values in the console
-        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, ScaledXP: {}", 
-                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, scaledXP);
+        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ScaledXP: {}", 
+                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, rarityMultiplier, scaledXP);
 
         // Ensure the final XP is at least the minimum XP gain
         scaledXP = std::max(scaledXP, MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM);
