@@ -4,12 +4,12 @@
 #include "ObjectMgr.h"
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
-#include "Config.h" // For loading configuration values
+#include "Config.h"
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 300; // Adjusted the XP cap to 300
-const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 30; // Keeping the minimum XP for high-level items at 30
+const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 10; // Keeping the minimum XP for high-level items at 30
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -20,6 +20,14 @@ public:
     void OnBeforeConfigLoad(bool /*reload*/) override
     {
         LOG_INFO("module", "Gathering Experience Module Loaded");
+    }
+
+    void OnLogin(Player* player) override
+    {
+        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience|r module by Thaxtin.");
+        }
     }
 
     // Function to calculate scaled experience based on player level and item base XP
