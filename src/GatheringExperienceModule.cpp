@@ -10,7 +10,7 @@
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
-const uint32 MAX_EXPERIENCE_GAIN = 500; // Adjusted the XP cap to 300
+const uint32 MAX_EXPERIENCE_GAIN = 2500;
 const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 10;
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
@@ -50,39 +50,25 @@ public:
 
         uint32 playerLevel = player->GetLevel();
 
-        // Apply stronger diminishing returns for being over-skilled
+        // No XP gain for characters at or above the max level
+        if (playerLevel >= GATHERING_MAX_LEVEL)
+            return 0;
+
+        // Calculate skill difference and apply diminishing returns
         uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
-        float skillMultiplier = 1.0f - (skillDifference * 0.01f); // Adjusted penalty: 1% reduction per skill point over
+        float skillMultiplier = 1.0f - (skillDifference * 0.01f); // 1% reduction per skill point over
+        skillMultiplier = std::max(skillMultiplier, 0.1f); // Ensure the skill multiplier does not go below 0.1
 
-        // Ensure the skill multiplier does not go below a certain threshold
-        skillMultiplier = std::max(skillMultiplier, 0.1f);
-
-        // Apply a scaling formula to reduce XP based on the player's level
-        float levelMultiplier = (requiredSkill <= 150) ? 1.0f : (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
+        // Apply level scaling formula
+        float levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
+                                (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
 
         // Calculate final XP with scaling and diminishing returns
         uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
 
         // Debug logging to see values in the console
-        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, ScaledXP: {}", itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, scaledXP);
-
-        // Cap for high-level items based on required skill
-        if (requiredSkill > 300)  // High-level items
-        {
-            scaledXP = std::max(scaledXP, MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM);  // Minimum XP of 10 for high-level items
-            scaledXP = std::min(scaledXP, 150u);  // Max XP cap of 150 for high-level items
-        }
-        // Adjusted cap for medium-level items based on required skill
-        else if (requiredSkill > 150 && requiredSkill <= 300)  // Mid-level items
-        {
-            scaledXP = std::max(scaledXP, MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM);  // Minimum XP of 10 for mid-level items
-            scaledXP = std::min(scaledXP, 100u);  // Max XP cap of 100 for mid-level items
-        }
-        else if (requiredSkill <= 150)  // Low-level items
-        {
-            scaledXP = std::max(scaledXP, MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM);   // Ensure minimum XP for low-level items
-            // No cap applied for low-level items to allow higher XP gains
-        }
+        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, ScaledXP: {}", 
+                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, scaledXP);
 
         // Ensure the final XP is at least the minimum XP gain
         scaledXP = std::max(scaledXP, MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM);
@@ -176,32 +162,32 @@ public:
         const std::map<uint32, std::pair<uint32, uint32>> herbalismItemsXP = {
             { 765, {360, 1} },     // Silverleaf
             { 2447, {360, 1} },    // Peacebloom
-            { 2449, {540, 15} },   // Earthroot (1.5x Silverleaf)
-            { 785, {720, 50} },    // Mageroyal (2x Silverleaf)
-            { 2450, {900, 70} },   // Briarthorn (2.5x Silverleaf)
-            { 2452, {1080, 115} }, // Swiftthistle (3x Silverleaf)
-            { 2453, {1260, 100} }, // Bruiseweed (3.5x Silverleaf)
-            { 3820, {1440, 85} },  // Stranglekelp (4x Silverleaf)
-            { 3355, {1620, 115} }, // Wild Steelbloom (4.5x Silverleaf)
-            { 3356, {1800, 125} }, // Kingsblood (5x Silverleaf)
-            { 3357, {1980, 150} }, // Liferoot (5.5x Silverleaf)
-            { 3369, {2160, 120} }, // Grave Moss (6x Silverleaf)
-            { 3818, {2340, 160} }, // Fadeleaf (6.5x Silverleaf)
-            { 3819, {2520, 195} }, // Wintersbite (7x Silverleaf)
-            { 3821, {2700, 170} }, // Goldthorn (7.5x Silverleaf)
-            { 3358, {2880, 185} }, // Khadgar's Whisker (8x Silverleaf)
-            { 4625, {3240, 205} }, // Firebloom (9x Silverleaf)
-            { 8831, {3420, 210} }, // Purple Lotus (9.5x Silverleaf)
-            { 8836, {3600, 220} }, // Arthas' Tears (10x Silverleaf)
-            { 8838, {3780, 230} }, // Sungrass (10.5x Silverleaf)
-            { 8839, {3960, 235} }, // Blindweed (11x Silverleaf)
-            { 8845, {4140, 245} }, // Ghost Mushroom (11.5x Silverleaf)
-            { 8846, {4320, 250} }, // Gromsblood (12x Silverleaf)
-            { 13463, {4680, 270} }, // Dreamfoil (13x Silverleaf)
-            { 13464, {4860, 260} }, // Golden Sansam (13.5x Silverleaf)
-            { 13465, {5040, 280} }, // Mountain Silversage (14x Silverleaf)
-            { 13466, {5220, 285} }, // Plaguebloom (14.5x Silverleaf)
-            { 13467, {5400, 300} }, // Black Lotus (15x Silverleaf)
+            { 2449, {540, 15} },   // Earthroot
+            { 785, {720, 50} },    // Mageroyal
+            { 2450, {900, 70} },   // Briarthorn
+            { 2452, {1080, 115} }, // Swiftthistle
+            { 2453, {1260, 100} }, // Bruiseweed
+            { 3820, {1440, 85} },  // Stranglekelp
+            { 3355, {1620, 115} }, // Wild Steelbloom
+            { 3356, {1800, 125} }, // Kingsblood
+            { 3357, {1980, 150} }, // Liferoot
+            { 3369, {2160, 120} }, // Grave Moss
+            { 3818, {2340, 160} }, // Fadeleaf
+            { 3819, {2520, 195} }, // Wintersbite
+            { 3821, {2700, 170} }, // Goldthorn
+            { 3358, {2880, 185} }, // Khadgar's Whisker
+            { 4625, {3240, 205} }, // Firebloom
+            { 8831, {3420, 210} }, // Purple Lotus
+            { 8836, {3600, 220} }, // Arthas' Tears
+            { 8838, {3780, 230} }, // Sungrass
+            { 8839, {3960, 235} }, // Blindweed
+            { 8845, {4140, 245} }, // Ghost Mushroom
+            { 8846, {4320, 250} }, // Gromsblood
+            { 13463, {4680, 270} }, // Dreamfoil
+            { 13464, {4860, 260} }, // Golden Sansam
+            { 13465, {5040, 280} }, // Mountain Silversage
+            { 13466, {5220, 285} }, // Plaguebloom
+            { 13467, {5400, 300} }, // Black Lotus
             { 22785, {5760, 300} }, // Felweed
             { 22786, {5940, 315} }, // Dreaming Glory
             { 22787, {6120, 325} }, // Ragveil
