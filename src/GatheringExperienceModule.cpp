@@ -5,6 +5,7 @@
 #include "GameEventMgr.h"
 #include "SkillDiscovery.h"
 #include "Config.h"
+#include "Chat.h"
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
