@@ -19,6 +19,10 @@ public:
     // OnWorldInitialize hook to log that the module is loaded
     void OnBeforeConfigLoad(bool /*reload*/) override
     {
+        // Check if the GatheringExperience module is enabled
+        if (!sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
+            return; // Exit if the module is disabled
+    
         LOG_INFO("module", "Gathering Experience Module Loaded");
     }
 
@@ -30,9 +34,18 @@ public:
         }
     }
 
+private:
+    // Function to check if the module is enabled
+    bool IsModuleEnabled() const
+    {
+        return sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true);
+    }
+
     // Function to calculate scaled experience based on player level and item base XP
     uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
     {
+        if (!IsModuleEnabled()) return 0; // Exit if the module is disabled
+
         uint32 playerLevel = player->GetLevel();
 
         // Apply stronger diminishing returns for being over-skilled
@@ -45,10 +58,8 @@ public:
         // Calculate final XP with scaling and diminishing returns
         uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
 
-        // Manually format the log message
-        char logMessage[256];
-        snprintf(logMessage, sizeof(logMessage), "ItemId: %u, BaseXP: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, ScaledXP: %u", itemId, baseXP, skillMultiplier, levelMultiplier, scaledXP);
-        LOG_INFO("module", "%s", logMessage);
+        // Debug logging to see values in the console
+        LOG_INFO("module", "ItemId: %u, BaseXP: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, ScaledXP: %u", itemId, baseXP, skillMultiplier, levelMultiplier, scaledXP);
 
         // Cap for high-level items like Thorium, Star Ruby
         if (baseXP > 350)  // High-level items like Thorium, Arcane Crystal, etc.
@@ -74,6 +85,8 @@ public:
     // Function to calculate bonus XP based on the player's skill vs the required skill
     uint32 GetSkillBasedXP(uint32 baseXP, uint32 requiredSkill, uint32 currentSkill)
     {
+        if (!IsModuleEnabled()) return 0; // Exit if the module is disabled
+
         if (currentSkill < requiredSkill)
         {
             // Increase XP for challenging nodes (player's skill is lower than required)
@@ -91,6 +104,8 @@ public:
     // Function to get base XP for different mining, herbalism, skinning, and fishing items
     uint32 GetGatheringBaseXP(uint32 itemId)
     {
+        if (!IsModuleEnabled()) return 0; // Exit if the module is disabled
+
         // Define a map for mining items with base XP and required skill
         const std::map<uint32, std::pair<uint32, uint32>> miningItems = {
             { 2770, {50, 1} },    // Copper Ore
@@ -189,7 +204,7 @@ public:
             { 39970, {1200, 415} }, // Frozen Herb
             { 36905, {1075, 425} }, // Lichbloom
             { 36906, {1100, 435} }, // Icethorn
-            { 39970, {1225, 450} } // Frost Lotus
+            { 39970, {1225, 450 } } // Frost Lotus
         };
 
         // Define a map for skinning items with base XP and required skill
@@ -295,10 +310,7 @@ public:
         auto fishingXP = fishingItems.find(itemId);
         if (fishingXP != fishingItems.end())
         {
-            // Manually format the log message for fishing items
-            char logMessage[256];
-            snprintf(logMessage, sizeof(logMessage), "Fishing Item ID: %u, Base XP: %u", itemId, fishingXP->second.first);
-            LOG_INFO("module", "%s", logMessage); // Log fishing item base XP
+            LOG_INFO("module", "Fishing Item ID: %u, Base XP: %u", itemId, fishingXP->second.first); // Log fishing item base XP
             return fishingXP->second.first; // Ensure this returns the correct base XP for fishing items
         }
 
@@ -309,6 +321,8 @@ public:
     // Function to apply rarity-based multipliers for special items
     float GetRarityMultiplier(uint32 itemId)
     {
+        if (!IsModuleEnabled()) return 1.0f; // Default multiplier if the module is disabled
+
         // Define rarity multipliers for high-end gathering items
         const std::map<uint32, float> rarityMultipliers = {
             // Uncommon items (multiplier: 1.2)
@@ -363,6 +377,8 @@ public:
     // Check if the item is related to gathering (mining, herbalism, skinning, or fishing)
     bool IsGatheringItem(uint32 itemId)
     {
+        if (!IsModuleEnabled()) return false; // Exit if the module is disabled
+
         // Check if the item exists in mining, herbalism, skinning, or fishing XP maps
         return GetGatheringBaseXP(itemId) > 0;
     }
@@ -375,9 +391,7 @@ public:
 
         // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning/fishing)
         uint32 baseXP = GetGatheringBaseXP(itemId);
-        char logMessage[256];
-        snprintf(logMessage, sizeof(logMessage), "Item ID: %u, Base XP: %u", itemId, baseXP);
-        LOG_INFO("module", "%s", logMessage); // Debug log for item ID and base XP
+        LOG_INFO("module", "Item ID: %u, Base XP: %u", itemId, baseXP); // Debug log for item ID and base XP
         if (baseXP == 0)
         {
             LOG_INFO("module", "Item ID: %u is not a gathering item.", itemId); // Log if item is not a gathering item
@@ -393,22 +407,19 @@ public:
         {
             currentSkill = player->GetSkillValue(SKILL_MINING);
             requiredSkill = (itemId == 2770) ? 1 : (itemId == 10620) ? 200 : 50;
-            snprintf(logMessage, sizeof(logMessage), "Mining: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
-            LOG_INFO("module", "%s", logMessage);
+            LOG_INFO("module", "Mining: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
         }
         else if (player->HasSkill(SKILL_HERBALISM))
         {
             currentSkill = player->GetSkillValue(SKILL_HERBALISM);
             requiredSkill = (itemId == 765) ? 1 : (itemId == 13463) ? 150 : 50;
-            snprintf(logMessage, sizeof(logMessage), "Herbalism: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
-            LOG_INFO("module", "%s", logMessage);
+            LOG_INFO("module", "Herbalism: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
         }
         else if (player->HasSkill(SKILL_FISHING))
         {
             currentSkill = player->GetSkillValue(SKILL_FISHING);
             requiredSkill = 1; // Fishing does not typically have different skill requirements for specific fish
-            snprintf(logMessage, sizeof(logMessage), "Fishing: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
-            LOG_INFO("module", "%s", logMessage);
+            LOG_INFO("module", "Fishing: Current Skill: %u, Required Skill: %u", currentSkill, requiredSkill);
         }
         else
         {
@@ -418,14 +429,12 @@ public:
 
         // Apply the skill-based XP bonus/penalty
         uint32 skillBasedXP = GetSkillBasedXP(baseXP, requiredSkill, currentSkill);
-        snprintf(logMessage, sizeof(logMessage), "Skill Based XP: %u", skillBasedXP);
-        LOG_INFO("module", "%s", logMessage); // Debug log for skill-based XP
+        LOG_INFO("module", "Skill Based XP: %u", skillBasedXP); // Debug log for skill-based XP
 
         // Apply rarity multiplier
         float rarityMultiplier = GetRarityMultiplier(itemId);
         uint32 finalXP = static_cast<uint32>(skillBasedXP * rarityMultiplier);
-        snprintf(logMessage, sizeof(logMessage), "Final XP before scaling: %u, Rarity Multiplier: %.2f", finalXP, rarityMultiplier);
-        LOG_INFO("module", "%s", logMessage); // Debug log for final XP
+        LOG_INFO("module", "Final XP before scaling: %u, Rarity Multiplier: %.2f", finalXP, rarityMultiplier); // Debug log for final XP
 
         // Calculate Skill and Level Multipliers
         uint32 playerLevel = player->GetLevel();
@@ -435,13 +444,11 @@ public:
 
         // Calculate scaled experience
         uint32 scaledXP = static_cast<uint32>(finalXP * skillMultiplier * levelMultiplier);
-        snprintf(logMessage, sizeof(logMessage), "ItemId: %u, BaseXP: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, ScaledXP: %u", itemId, baseXP, skillMultiplier, levelMultiplier, scaledXP);
-        LOG_INFO("module", "%s", logMessage); // Debug log for scaled XP
+        LOG_INFO("module", "ItemId: %u, BaseXP: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, ScaledXP: %u", itemId, baseXP, skillMultiplier, levelMultiplier, scaledXP); // Debug log for scaled XP
 
         // Calculate final XP to give
         uint32 xp = std::min(scaledXP, MAX_EXPERIENCE_GAIN); // Cap the XP if necessary
-        snprintf(logMessage, sizeof(logMessage), "Calculated XP to give: %u", xp);
-        LOG_INFO("module", "%s", logMessage); // Debug log for calculated XP
+        LOG_INFO("module", "Calculated XP to give: %u", xp); // Debug log for calculated XP
 
         // Give the player the experience with the capped value
         player->GiveXP(xp, nullptr);
@@ -450,6 +457,8 @@ public:
     // Hook for Skinning (When the player skins a creature)
     void OnKillCreature(Player* player, Creature* creature)
     {
+        if (!IsModuleEnabled()) return; // Exit if the module is disabled
+
         // Check if the player can skin the creature and if it's a beast (skinnable creatures)
         if (player->HasSkill(SKILL_SKINNING) && creature->GetCreatureType() == CREATURE_TYPE_BEAST && creature->loot.isLooted())
         {
@@ -479,11 +488,7 @@ public:
 // Register the script so AzerothCore knows to use it
 void AddGatheringExperienceModuleScripts()
 {
-    // Check if the GatheringExperience module is enabled
-    if (sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true))
-    {
-        new GatheringExperienceModule(); // Only register the module if enabled
-    }
+    new GatheringExperienceModule();
 }
 
 void Addmod_gathering_experience()
