@@ -248,6 +248,28 @@ public:
             { 15423, {525, 525} }   // Brilliant Chromatic Scale
         };
 
+        // Define fishing items and their XP values
+        const std::map<uint32, std::pair<uint32, uint32>> fishingItemsXP = {
+            { 6358, {100, 1} },    // Oily Blackmouth
+            { 6359, {150, 1} },    // Firefin Snapper
+            { 6361, {200, 1} },    // Raw Rainbow Fin Albacore
+            { 6362, {250, 1} },    // Raw Rockscale Cod
+            { 6363, {300, 1} },    // Raw Mithril Head Trout
+            { 6364, {350, 1} },    // Raw Redgill
+            { 6365, {400, 1} },    // Raw Spotted Yellowtail
+            { 6366, {450, 1} },    // Raw Summer Bass
+            { 6367, {500, 1} },    // Raw Winter Squid
+            { 6368, {550, 1} },    // Raw Nightfin Snapper
+            { 6369, {600, 1} },    // Raw Sunscale Salmon
+            { 13754, {650, 1} },   // Raw Glossy Mightfish
+            { 13755, {700, 1} },   // Raw Summer Bass
+            { 13756, {750, 1} },   // Raw Winter Squid
+            { 13757, {800, 1} },   // Raw Nightfin Snapper
+            { 13758, {850, 1} },   // Raw Sunscale Salmon
+            { 13759, {900, 1} },   // Raw Sagefish
+            { 13760, {950, 1} },   // Raw Greater Sagefish
+        };
+
         // Check if the item is a mining item
         auto miningXP = miningItemsXP.find(itemId);
         if (miningXP != miningItemsXP.end())
@@ -262,6 +284,11 @@ public:
         auto skinningXP = skinningItemsXP.find(itemId);
         if (skinningXP != skinningItemsXP.end())
             return skinningXP->second;
+
+        // Check if the item is a fishing item
+        auto fishingXP = fishingItemsXP.find(itemId);
+        if (fishingXP != fishingItemsXP.end())
+            return fishingXP->second;
 
         // Default base XP if the item is not found in the above tables
         return {0, 0}; // Default to 0 XP and 0 required skill for non-gathering items
