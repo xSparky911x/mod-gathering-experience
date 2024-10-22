@@ -116,49 +116,47 @@ public:
         // Mining item XP and required skill values
         const std::map<uint32, std::pair<uint32, uint32>> miningItemsXP = {
             { 2770, {50, 1} },    // Copper Ore
+            { 774, {50, 1} },    // Malachite
+            { 818, {75, 1} },    // Tigerseye
             { 2771, {100, 65} },   // Tin Ore
-            { 2772, {200, 125} },  // Iron Ore
+            { 1705, {200, 65} },  // Lesser Moonstone
+            { 1529, {175, 65} },  // Jade
+            { 1210, {100, 65} },  // Shadowgem
+            { 1206, {150, 65} },  // Moss Agate
+            { 2836, {50, 65} },   // Coarse Stone
             { 2775, {150, 75} },   // Silver Ore
+            { 2772, {200, 125} },  // Iron Ore
+            { 3864, {300, 125} },  // Citrine
+            { 2838, {75, 125} },   // Heavy Stone
             { 2776, {250, 155} },  // Gold Ore
+            { 7909, {650, 155} },  // Aquamarine
             { 3858, {400, 175} },  // Mithril Ore
-            { 7911, {350, 230} },  // Truesilver Ore
-            { 10620, {400, 250} }, // Thorium Ore
+            { 7912, {125, 175} },  // Solid Stone
+            { 7911, {350, 205} },  // Truesilver Ore
+            { 10620, {400, 230} }, // Thorium Ore
+            { 12800, {650, 230} }, // Azerothian Diamond
+            { 12364, {700, 230} }, // Huge Emerald
+            { 12363, {750, 230} }, // Arcane Crystal
+            { 12799, {675, 230} }, // Large Opal
+            { 12361, {700, 230} }, // Blue Sapphire
+            { 7910, {625, 230} },  // Star Ruby
+            { 12365, {100, 230} }, // Dense Stone
+            { 11370, {375, 230} }, // Dark Iron Ore
+            { 19774, {675, 255} }, // Souldarite
             { 23424, {425, 275} }, // Fel Iron Ore
-            { 23425, {450, 325} }, // Adamantite Ore
-            { 23426, {475, 375} }, // Khorium Ore
-            { 36909, {500, 350} }, // Cobalt Ore
-            { 36910, {525, 450} }, // Titanium Ore
-            { 36912, {550, 400} }, // Saronite Ore
-            { 18562, {600, 275} }, // Elementium Ore
-            { 22202, {575, 275} }, // Small Obsidian Shard
-            { 22203, {625, 300} }, // Large Obsidian Shard
-            { 12800, {650, 300} }, // Azerothian Diamond
-            { 19774, {675, 300} }, // Souldarite
-            { 12364, {700, 300} }, // Huge Emerald
-            { 12363, {750, 300} }, // Arcane Crystal
-            { 12799, {675, 300} }, // Large Opal
-            { 12361, {700, 300} }, // Blue Sapphire
-            { 7910, {625, 300} },  // Star Ruby
             { 11754, {600, 300} }, // Black Diamond
-            { 7909, {650, 300} },  // Aquamarine
             { 11382, {800, 300} }, // Blood of the Mountain
-            { 3864, {300, 300} },  // Citrine
-            { 1705, {200, 300} },  // Lesser Moonstone
-            { 1529, {175, 300} },  // Jade
-            { 1210, {100, 300} },  // Shadowgem
-            { 1206, {150, 300} },  // Moss Agate
-            { 774, {50, 300} },    // Malachite
-            { 818, {75, 300} },    // Tigerseye
-            { 37701, {300, 300} }, // Crystallized Earth
-            { 37702, {325, 300} }, // Crystallized Fire
-            { 37703, {350, 300} }, // Crystallized Shadow
-            { 37704, {375, 300} }, // Crystallized Life
-            { 37705, {400, 300} }, // Crystallized Water
-            { 7912, {125, 300} },  // Solid Stone
-            { 2838, {75, 300} },   // Heavy Stone
-            { 2836, {50, 300} },   // Coarse Stone
-            { 12365, {100, 300} }, // Dense Stone
-            { 11370, {375, 300} }, // Dark Iron Ore
+            { 22202, {575, 305} }, // Small Obsidian Shard
+            { 22203, {625, 305} }, // Large Obsidian Shard
+            { 23425, {450, 325} }, // Adamantite Ore
+            { 37705, {400, 350} }, // Crystallized Water            
+            { 37701, {300, 350} }, // Crystallized Earth
+            { 36909, {500, 350} }, // Cobalt Ore
+            { 23426, {475, 375} }, // Khorium Ore
+            { 36912, {550, 400} }, // Saronite Ore
+            { 37703, {350, 400} }, // Crystallized Shadow
+            { 36910, {525, 450} }, // Titanium Ore
+            { 37702, {325, 450} }, // Crystallized Fire
         };
 
         // Herbalism item XP and required skill values
