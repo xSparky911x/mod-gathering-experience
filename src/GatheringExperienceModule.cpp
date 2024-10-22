@@ -168,17 +168,17 @@ public:
             { 2449, {540, 15} },   // Earthroot
             { 785, {720, 50} },    // Mageroyal
             { 2450, {900, 70} },   // Briarthorn
-            { 2452, {1080, 115} }, // Swiftthistle
-            { 2453, {1260, 100} }, // Bruiseweed
             { 3820, {1440, 85} },  // Stranglekelp
+            { 2453, {1260, 100} }, // Bruiseweed
+            { 2452, {1080, 115} }, // Swiftthistle
             { 3355, {1620, 115} }, // Wild Steelbloom
+            { 3369, {2160, 120} }, // Grave Moss
             { 3356, {1800, 125} }, // Kingsblood
             { 3357, {1980, 150} }, // Liferoot
-            { 3369, {2160, 120} }, // Grave Moss
             { 3818, {2340, 160} }, // Fadeleaf
-            { 3819, {2520, 195} }, // Wintersbite
             { 3821, {2700, 170} }, // Goldthorn
             { 3358, {2880, 185} }, // Khadgar's Whisker
+            { 3819, {2520, 195} }, // Wintersbite
             { 4625, {3240, 205} }, // Firebloom
             { 8831, {3420, 210} }, // Purple Lotus
             { 8836, {3600, 220} }, // Arthas' Tears
@@ -186,8 +186,8 @@ public:
             { 8839, {3960, 235} }, // Blindweed
             { 8845, {4140, 245} }, // Ghost Mushroom
             { 8846, {4320, 250} }, // Gromsblood
-            { 13463, {4680, 270} }, // Dreamfoil
             { 13464, {4860, 260} }, // Golden Sansam
+            { 13463, {4680, 270} }, // Dreamfoil
             { 13465, {5040, 280} }, // Mountain Silversage
             { 13466, {5220, 285} }, // Plaguebloom
             { 13467, {5400, 300} }, // Black Lotus
@@ -197,14 +197,14 @@ public:
             { 22789, {6300, 325} }, // Terocone
             { 22790, {6480, 340} }, // Ancient Lichen
             { 22791, {6660, 350} }, // Netherbloom
+            { 36901, {7200, 350} }, // Goldclover
             { 22792, {6840, 365} }, // Nightmare Vine
             { 22793, {7020, 375} }, // Mana Thistle
-            { 36901, {7200, 350} }, // Goldclover
-            { 36903, {7380, 400} }, // Adder's Tongue
             { 36904, {7560, 375} }, // Tiger Lily
+            { 36903, {7380, 400} }, // Adder's Tongue
+            { 36907, {8100, 400} }, // Talandra's Rose
             { 36905, {7740, 425} }, // Lichbloom
             { 36906, {7920, 435} }, // Icethorn
-            { 36907, {8100, 400} }, // Talandra's Rose
         };
 
         // Skinning item XP and required skill values (Leathers, hides, and scales)
