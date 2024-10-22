@@ -56,7 +56,7 @@ public:
 
         // Calculate skill difference and apply diminishing returns
         uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
-        float skillMultiplier = 1.0f - (skillDifference * 0.01f); // 1% reduction per skill point over
+        float skillMultiplier = 1.0f - (skillDifference * 0.005f); // 0.5% reduction per skill point over
         skillMultiplier = std::max(skillMultiplier, 0.1f); // Ensure the skill multiplier does not go below 0.1
 
         // Apply level scaling formula
