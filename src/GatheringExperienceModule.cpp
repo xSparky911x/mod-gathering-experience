@@ -15,6 +15,14 @@ const uint32 MIN_EXPERIENCE_GAIN = 10;
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
+private:
+    std::map<uint32, std::pair<uint32, uint32>> miningItemsXP;
+    std::map<uint32, std::pair<uint32, uint32>> herbalismItemsXP;
+    std::map<uint32, std::pair<uint32, uint32>> skinningItemsXP;
+    std::map<uint32, std::pair<uint32, uint32>> fishingItemsXP;
+
+    bool enabled;
+
 public:
     GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") { }
 
@@ -66,19 +74,23 @@ public:
         // Get rarity multiplier
         float rarityMultiplier = GetRarityMultiplier(itemId);
 
-        // Calculate final XP with scaling, diminishing returns, and rarity multiplier
-        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
+        // Apply zone-based multiplier for fishing
+        float zoneMultiplier = 1.0f;
+        if (IsFishingItem(itemId))
+        {
+            zoneMultiplier = GetFishingZoneMultiplier(player->GetZoneId());
+            LOG_INFO("module", "Fishing item detected. Zone multiplier: {}", zoneMultiplier);
+        }
 
-        // Apply minimum and maximum XP constraints only if necessary
-        uint32 finalXP = scaledXP;
-        if (scaledXP < MIN_EXPERIENCE_GAIN)
-            finalXP = MIN_EXPERIENCE_GAIN;
-        else if (scaledXP > MAX_EXPERIENCE_GAIN)
-            finalXP = MAX_EXPERIENCE_GAIN;
+        // Calculate final XP with scaling, diminishing returns, rarity multiplier, and zone multiplier
+        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier * zoneMultiplier);
 
-        // Debug logging to see values in the console
-        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ScaledXP: {}, FinalXP: {}", 
-                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, rarityMultiplier, scaledXP, finalXP);
+        // Apply minimum and maximum XP constraints
+        uint32 finalXP = std::clamp(scaledXP, MIN_EXPERIENCE_GAIN, MAX_EXPERIENCE_GAIN);
+
+        // Debug logging
+        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ZoneMultiplier: {:.2f}, ScaledXP: {}, FinalXP: {}", 
+                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, rarityMultiplier, zoneMultiplier, scaledXP, finalXP);
 
         return finalXP;
     }
@@ -183,8 +195,9 @@ public:
 
         // Skinning item XP and required skill values (Leathers, hides, and scales)
         const std::map<uint32, std::pair<uint32, uint32>> skinningItemsXP = {
-            { 2318, {50, 1} },    // Light Leather
-            { 2319, {100, 100} },   // Medium Leather
+            { 2934, {25, 25} },    // Ruined Leather Scraps
+            { 2318, {50, 1} },     // Light Leather
+            { 2319, {100, 100} },  // Medium Leather
             { 4234, {150, 150} },   // Heavy Leather
             { 4304, {200, 200} },   // Thick Leather
             { 8170, {250, 250} },   // Rugged Leather
@@ -200,7 +213,6 @@ public:
             { 17012, {375, 375} },  // Core Leather (Molten Core, rare)
             { 29539, {400, 400} },  // Cobra Scales
             { 29547, {400, 400} },  // Wind Scales
-            { 2934, {25, 25} },    // Ruined Leather Scraps
             { 783, {75, 75} },     // Light Hide
             { 4232, {125, 125} },   // Medium Hide
             { 4235, {175, 175} },   // Heavy Hide
@@ -226,24 +238,38 @@ public:
 
         // Define fishing items and their XP values
         const std::map<uint32, std::pair<uint32, uint32>> fishingItemsXP = {
-            { 6358, {100, 1} },    // Oily Blackmouth
-            { 6359, {150, 1} },    // Firefin Snapper
-            { 6361, {200, 1} },    // Raw Rainbow Fin Albacore
-            { 6362, {250, 1} },    // Raw Rockscale Cod
-            { 6363, {300, 1} },    // Raw Mithril Head Trout
-            { 6364, {350, 1} },    // Raw Redgill
-            { 6365, {400, 1} },    // Raw Spotted Yellowtail
-            { 6366, {450, 1} },    // Raw Summer Bass
-            { 6367, {500, 1} },    // Raw Winter Squid
-            { 6368, {550, 1} },    // Raw Nightfin Snapper
-            { 6369, {600, 1} },    // Raw Sunscale Salmon
-            { 13754, {650, 1} },   // Raw Glossy Mightfish
-            { 13755, {700, 1} },   // Raw Summer Bass
-            { 13756, {750, 1} },   // Raw Winter Squid
-            { 13757, {800, 1} },   // Raw Nightfin Snapper
-            { 13758, {850, 1} },   // Raw Sunscale Salmon
-            { 13759, {900, 1} },   // Raw Sagefish
-            { 13760, {950, 1} },   // Raw Greater Sagefish
+            { 6291, {10, 0} },     // Raw Brilliant Smallfish
+            { 6308, {75, 0} },     // Raw Bristle Whisker Catfish
+            { 6317, {50, 0} },     // Raw Loch Frenzy
+            { 6358, {100, 0} },    // Oily Blackmouth
+            { 6359, {150, 0} },    // Firefin Snapper
+            { 6361, {200, 0} },    // Raw Rainbow Fin Albacore
+            { 6362, {250, 0} },    // Raw Rockscale Cod
+            { 6289, {125, 0} },    // Raw Longjaw Mud Snapper
+            { 21071, {300, 0} },   // Raw Sagefish
+            { 21153, {350, 0} },   // Raw Greater Sagefish
+            { 27422, {400, 0} },   // Barbed Gill Trout
+            { 27425, {450, 0} },   // Spotted Feltail
+            { 27429, {500, 0} },   // Zangarian Sporefish
+            { 27435, {550, 0} },   // Figluster's Mudfish
+            { 27437, {600, 0} },   // Icefin Bluefish
+            { 27438, {650, 0} },   // Golden Darter
+            { 27439, {700, 0} },   // Furious Crawdad
+            { 33823, {750, 0} },   // Bloodfin Catfish
+            { 33824, {800, 0} },   // Crescent-Tail Skullfish
+            { 41800, {850, 0} },   // Deep Sea Monsterbelly
+            { 41801, {900, 0} },   // Moonglow Cuttlefish
+            { 41802, {950, 0} },   // Imperial Manta Ray
+            { 41803, {1000, 0} },  // Rockfin Grouper
+            { 41805, {1050, 0} },  // Borean Man O' War
+            { 41806, {1100, 0} },  // Musselback Sculpin
+            { 41807, {1150, 0} },  // Dragonfin Angelfish
+            { 41808, {1200, 0} },  // Bonescale Snapper
+            { 41809, {1250, 0} },  // Glacial Salmon
+            { 41810, {1300, 0} },  // Fangtooth Herring
+            { 41812, {1350, 0} },  // Giant Darkwater Clam
+            { 41813, {1400, 0} },  // Nettlefish
+            { 41814, {1450, 0} },  // Glassfin Minnow
         };
 
         // Check if the item is a mining item
@@ -259,14 +285,22 @@ public:
         // Check if the item is a skinning item
         auto skinningXP = skinningItemsXP.find(itemId);
         if (skinningXP != skinningItemsXP.end())
+        {
+            LOG_INFO("module", "Skinning item found: ItemId: {}, BaseXP: {}, RequiredSkill: {}", 
+                     itemId, skinningXP->second.first, skinningXP->second.second);
             return skinningXP->second;
+        }
 
         // Check if the item is a fishing item
         auto fishingXP = fishingItemsXP.find(itemId);
         if (fishingXP != fishingItemsXP.end())
+        {
+            LOG_INFO("module", "Fishing item found: ItemId: {}, BaseXP: {}, RequiredSkill: {}", 
+                     itemId, fishingXP->second.first, fishingXP->second.second);
             return fishingXP->second;
+        }
 
-        // Default base XP if the item is not found in the above tables
+        LOG_INFO("module", "Item not found in any profession: ItemId: {}", itemId);
         return {0, 0}; // Default to 0 XP and 0 required skill for non-gathering items
     }
 
@@ -312,7 +346,7 @@ public:
         return 1.0f;
     }
 
-    // Check if the item is related to gathering (mining, herbalism, or skinning)
+    // Check if the item is related to gathering (mining, herbalism, skinning, or fishing)
     bool IsGatheringItem(uint32 itemId)
     {
         // Check if the item exists in mining, herbalism, or skinning XP maps
@@ -320,34 +354,122 @@ public:
         return baseXP > 0;
     }
 
+    float GetFishingZoneMultiplier(uint32 zoneId)
+    {
+        // Define zone multipliers for fishing
+        const std::map<uint32, float> fishingZoneMultipliers = {
+            // Example values, adjust as needed
+            { 1, 1.0f },   // Dun Morogh
+            { 12, 1.2f },  // Elwynn Forest
+            { 14, 1.5f },  // Durotar
+            { 85, 1.3f },  // Tirisfal Glades
+            { 141, 1.4f }, // Teldrassil
+            { 215, 1.6f }, // Mulgore
+            { 3, 1.1f },   // Badlands
+            { 10, 1.7f },  // Duskwood
+            { 11, 1.8f },  // Wetlands
+            { 33, 1.9f },  // Stranglethorn Vale
+            { 38, 2.0f },  // Loch Modan
+            { 40, 1.6f },  // Westfall
+            { 44, 1.7f },  // Redridge Mountains
+            { 47, 1.8f },  // The Hinterlands
+            { 51, 1.9f },  // Searing Gorge
+            { 139, 2.0f }, // Eastern Plaguelands
+            { 1377, 2.1f },// Silithus
+            { 1519, 2.2f },// Stormwind City
+            { 1637, 2.3f },// Orgrimmar
+            { 3430, 2.4f },// Eversong Woods
+            // Add more zones as needed
+        };
+
+        auto it = fishingZoneMultipliers.find(zoneId);
+        float multiplier = (it != fishingZoneMultipliers.end()) ? it->second : 1.0f;
+        LOG_INFO("module", "GetFishingZoneMultiplier for zoneId: {}, multiplier: {}", zoneId, multiplier);
+        return multiplier;
+    }
+
     void OnLootItem(Player* player, Item* item, uint32 /*count*/, ObjectGuid /*lootguid*/) override
     {
+        if (!enabled)
+            return;
+
         uint32 itemId = item->GetEntry();
+        LOG_INFO("module", "OnLootItem called for ItemId: {}", itemId);
 
         auto [baseXP, requiredSkill] = GetGatheringBaseXPAndRequiredSkill(itemId);
+        LOG_INFO("module", "GetGatheringBaseXPAndRequiredSkill returned baseXP: {}, requiredSkill: {}", baseXP, requiredSkill);
+
         if (baseXP == 0)
+        {
+            LOG_INFO("module", "Item {} is not a gathering item", itemId);
             return;
+        }
 
         uint32 currentSkill = 0;
         SkillType skillType = SKILL_NONE;
 
-        if (player->HasSkill(SKILL_MINING))
+        // Check for each profession
+        LOG_INFO("module", "Checking profession for ItemId: {}", itemId);
+        if (IsMiningItem(itemId))
         {
-            currentSkill = player->GetSkillValue(SKILL_MINING);
-            skillType = SKILL_MINING;
+            LOG_INFO("module", "ItemId: {} is a mining item", itemId);
+            if (player->HasSkill(SKILL_MINING))
+            {
+                currentSkill = player->GetSkillValue(SKILL_MINING);
+                skillType = SKILL_MINING;
+                LOG_INFO("module", "Player has mining skill. Current skill: {}", currentSkill);
+            }
+            else
+            {
+                LOG_INFO("module", "Player does not have mining skill");
+            }
         }
-        else if (player->HasSkill(SKILL_HERBALISM))
+        else if (IsHerbalismItem(itemId))
         {
-            currentSkill = player->GetSkillValue(SKILL_HERBALISM);
-            skillType = SKILL_HERBALISM;
+            LOG_INFO("module", "ItemId: {} is a herbalism item", itemId);
+            if (player->HasSkill(SKILL_HERBALISM))
+            {
+                currentSkill = player->GetSkillValue(SKILL_HERBALISM);
+                skillType = SKILL_HERBALISM;
+                LOG_INFO("module", "Player has herbalism skill. Current skill: {}", currentSkill);
+            }
+            else
+            {
+                LOG_INFO("module", "Player does not have herbalism skill");
+            }
         }
-        else if (player->HasSkill(SKILL_SKINNING))
+        else if (IsSkinningItem(itemId))
         {
-            currentSkill = player->GetSkillValue(SKILL_SKINNING);
-            skillType = SKILL_SKINNING;
+            LOG_INFO("module", "ItemId: {} is a skinning item", itemId);
+            if (player->HasSkill(SKILL_SKINNING))
+            {
+                currentSkill = player->GetSkillValue(SKILL_SKINNING);
+                skillType = SKILL_SKINNING;
+                LOG_INFO("module", "Player has skinning skill. Current skill: {}", currentSkill);
+            }
+            else
+            {
+                LOG_INFO("module", "Player does not have skinning skill");
+            }
         }
-        else
+        else if (IsFishingItem(itemId))
         {
+            LOG_INFO("module", "ItemId: {} is a fishing item", itemId);
+            if (player->HasSkill(SKILL_FISHING))
+            {
+                currentSkill = player->GetSkillValue(SKILL_FISHING);
+                skillType = SKILL_FISHING;
+                LOG_INFO("module", "Player has fishing skill. Current skill: {}", currentSkill);
+            }
+            else
+            {
+                LOG_INFO("module", "Player does not have fishing skill");
+            }
+        }
+
+        if (skillType == SKILL_NONE)
+        {
+            LOG_ERROR("module", "Item {} not recognized as a gathering item or player doesn't have the required skill", itemId);
             return;
         }
 
@@ -365,7 +487,12 @@ public:
             case SKILL_SKINNING:
                 skillName = "Skinning";
                 break;
-            // Add other cases if needed
+            case SKILL_FISHING:
+                skillName = "Fishing";
+                break;
+            default:
+                skillName = "Unknown";
+                break;
         }
 
         LOG_INFO("module", "OnLootItem - ItemId: {}, Skill: {}, BaseXP: {}, RequiredSkill: {}, CurrentSkill: {}, ScaledXP: {}", 
@@ -374,8 +501,49 @@ public:
         player->GiveXP(xp, nullptr);
     }
 
-    private:
-    bool enabled;
+    bool IsMiningItem(uint32 itemId)
+    {
+        auto it = miningItemsXP.find(itemId);
+        if (it != miningItemsXP.end())
+        {
+            LOG_INFO("module", "IsMiningItem: ItemId {} is a mining item", itemId);
+            return true;
+        }
+        return false;
+    }
+
+    bool IsHerbalismItem(uint32 itemId)
+    {
+        auto it = herbalismItemsXP.find(itemId);
+        if (it != herbalismItemsXP.end())
+        {
+            LOG_INFO("module", "IsHerbalismItem: ItemId {} is a herbalism item", itemId);
+            return true;
+        }
+        return false;
+    }
+
+    bool IsSkinningItem(uint32 itemId)
+    {
+        auto it = skinningItemsXP.find(itemId);
+        if (it != skinningItemsXP.end())
+        {
+            LOG_INFO("module", "IsSkinningItem: ItemId {} is a skinning item", itemId);
+            return true;
+        }
+        return false;
+    }
+
+    bool IsFishingItem(uint32 itemId)
+    {
+        auto it = fishingItemsXP.find(itemId);
+        if (it != fishingItemsXP.end())
+        {
+            LOG_INFO("module", "IsFishingItem: ItemId {} is a fishing item", itemId);
+            return true;
+        }
+        return false;
+    }
 };
 
 // Register the script so AzerothCore knows to use it
