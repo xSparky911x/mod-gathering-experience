@@ -11,7 +11,7 @@
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
-const uint32 MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM = 10;
+const uint32 MIN_EXPERIENCE_GAIN = 10;
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -69,49 +69,25 @@ public:
         // Calculate final XP with scaling, diminishing returns, and rarity multiplier
         uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
 
+        // Apply minimum and maximum XP constraints only if necessary
+        uint32 finalXP = scaledXP;
+        if (scaledXP < MIN_EXPERIENCE_GAIN)
+            finalXP = MIN_EXPERIENCE_GAIN;
+        else if (scaledXP > MAX_EXPERIENCE_GAIN)
+            finalXP = MAX_EXPERIENCE_GAIN;
+
         // Debug logging to see values in the console
-        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ScaledXP: {}", 
-                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, rarityMultiplier, scaledXP);
+        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ScaledXP: {}, FinalXP: {}", 
+                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, rarityMultiplier, scaledXP, finalXP);
 
-        // Ensure the final XP is at least the minimum XP gain
-        scaledXP = std::max(scaledXP, MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM);
-
-        // Return the final scaled and capped XP value
-        return std::min(scaledXP, MAX_EXPERIENCE_GAIN);
+        return finalXP;
     }
-
-    uint32 GetSkillBasedXP(uint32 baseXP, uint32 requiredSkill, uint32 currentSkill)
-    {
-        if (!enabled)
-        return 0;
-        
-        // Log the input values
-        std::cout << "baseXP: " << baseXP << ", requiredSkill: " << requiredSkill << ", currentSkill: " << currentSkill << std::endl;
-
-        if (currentSkill < requiredSkill)
-        {
-            // Increase XP for challenging nodes (player's skill is lower than required)
-            uint32 bonusXP = (requiredSkill - currentSkill) * 2; // XP bonus scaling
-            uint32 totalXP = baseXP + bonusXP;
-            std::cout << "Bonus XP: " << bonusXP << ", Total XP: " << totalXP << std::endl;
-            return totalXP;
-        }
-        else
-        {
-            // Penalize XP if the node is too easy but keep a minimum XP threshold
-            uint32 penaltyXP = (currentSkill - requiredSkill) * 1; // XP penalty scaling
-            uint32 totalXP = baseXP > penaltyXP ? baseXP - penaltyXP : MIN_EXPERIENCE_GAIN_HIGH_LEVEL_ITEM; // Ensure at least the minimum XP is given
-            std::cout << "Penalty XP: " << penaltyXP << ", Total XP: " << totalXP << std::endl;
-            return totalXP;
-        }
-    }
-
 
     // Function to get base XP and required skill for different mining, herbalism items, and skinning items
     std::pair<uint32, uint32> GetGatheringBaseXPAndRequiredSkill(uint32 itemId)
     {
         if (!enabled)
-        return {0, 0};
+            return {0, 0};
         
         // Mining item XP and required skill values
         const std::map<uint32, std::pair<uint32, uint32>> miningItemsXP = {
@@ -346,78 +322,58 @@ public:
 
     void OnLootItem(Player* player, Item* item, uint32 /*count*/, ObjectGuid /*lootguid*/) override
     {
-        uint32 itemId = item->GetEntry();  // Get the item ID
+        uint32 itemId = item->GetEntry();
 
-        // Ensure the looted item is part of a gathering profession (herbalism/mining/skinning)
         auto [baseXP, requiredSkill] = GetGatheringBaseXPAndRequiredSkill(itemId);
         if (baseXP == 0)
-            return; // Skip non-gathering items
+            return;
 
-        // Get the player's current skill level in the appropriate profession
         uint32 currentSkill = 0;
+        SkillType skillType = SKILL_NONE;
 
-        // Determine if this is a mining or herbalism node
         if (player->HasSkill(SKILL_MINING))
         {
             currentSkill = player->GetSkillValue(SKILL_MINING);
+            skillType = SKILL_MINING;
         }
         else if (player->HasSkill(SKILL_HERBALISM))
         {
             currentSkill = player->GetSkillValue(SKILL_HERBALISM);
+            skillType = SKILL_HERBALISM;
+        }
+        else if (player->HasSkill(SKILL_SKINNING))
+        {
+            currentSkill = player->GetSkillValue(SKILL_SKINNING);
+            skillType = SKILL_SKINNING;
         }
         else
         {
-            return; // No gathering skill, exit
+            return;
         }
 
-        // Apply the skill-based XP bonus/penalty
-        uint32 skillBasedXP = GetSkillBasedXP(baseXP, requiredSkill, currentSkill);
-
-        // Apply rarity multiplier
-        float rarityMultiplier = GetRarityMultiplier(itemId);
-        uint32 finalXP = static_cast<uint32>(skillBasedXP * rarityMultiplier);
-
-        // Calculate scaled experience based on player's level and skill difference, now with itemId
-        uint32 xp = CalculateExperience(player, finalXP, requiredSkill, currentSkill, itemId);
+        uint32 xp = CalculateExperience(player, baseXP, requiredSkill, currentSkill, itemId);
         
-        // Debug logging to see values in the console
-        LOG_INFO("module", "OnLootItem - ItemId: {}, BaseXP: {}, RequiredSkill: {}, CurrentSkill: {}, SkillBasedXP: {}, RarityMultiplier: {:.2f}, FinalXP: {}, ScaledXP: {}", 
-                itemId, baseXP, requiredSkill, currentSkill, skillBasedXP, rarityMultiplier, finalXP, xp);
+        const char* skillName = "Unknown";
+        switch (skillType)
+        {
+            case SKILL_MINING:
+                skillName = "Mining";
+                break;
+            case SKILL_HERBALISM:
+                skillName = "Herbalism";
+                break;
+            case SKILL_SKINNING:
+                skillName = "Skinning";
+                break;
+            // Add other cases if needed
+        }
 
-        // Give the player the experience with the capped value
+        LOG_INFO("module", "OnLootItem - ItemId: {}, Skill: {}, BaseXP: {}, RequiredSkill: {}, CurrentSkill: {}, ScaledXP: {}", 
+                itemId, skillName, baseXP, requiredSkill, currentSkill, xp);
+
         player->GiveXP(xp, nullptr);
     }
 
-    // Hook for Skinning (When the player skins a creature)
-    void OnKillCreature(Player* player, Creature* creature)
-    {
-        if (!enabled)
-            return;
-
-        // Check if the player can skin the creature and if it's a beast (skinnable creatures)
-        if (player->HasSkill(SKILL_SKINNING) && creature->GetCreatureType() == CREATURE_TYPE_BEAST && creature->loot.isLooted())
-        {
-            // Get the player's current skinning skill
-            uint32 currentSkill = player->GetSkillValue(SKILL_SKINNING);
-            uint32 requiredSkill = creature->GetLevel() * 5; // Simplified, adjust as needed based on actual skinning mechanics
-
-            // Base XP for skinning, adjustable based on creature level
-            uint32 baseXP = requiredSkill / 2; // Example logic for skinning XP
-
-            // Apply skill-based XP bonus/penalty
-            uint32 skillBasedXP = GetSkillBasedXP(baseXP, requiredSkill, currentSkill);
-
-            // Apply rarity multiplier for skinning items
-            float rarityMultiplier = 1.5f; // Adjust as needed
-            uint32 finalXP = static_cast<uint32>(skillBasedXP * rarityMultiplier);
-
-            // Pass 0 as itemId since there's no specific item for skinning
-            uint32 xp = CalculateExperience(player, finalXP, requiredSkill, currentSkill, 0);
-
-            // Give the player the experience with the capped value
-            player->GiveXP(xp, nullptr);
-        }
-    }
     private:
     bool enabled;
 };
