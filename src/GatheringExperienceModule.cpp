@@ -24,88 +24,56 @@ private:
     bool enabled;
 
 public:
-    GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") { }
-
-    // OnWorldInitialize hook to log that the module is loaded
-    void OnBeforeConfigLoad(bool /*reload*/) override
+    GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") 
     {
-        enabled = sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true);
-        if (!enabled)
-        {
-            LOG_INFO("module", "Gathering Experience Module is disabled by config.");
-            return;
-        }
+        // Initialize skinningItemsXP map
+        skinningItemsXP = {
+            { 2934, {25, 1} },     // Ruined Leather Scraps - Changed required skill to 1
+            { 2318, {50, 1} },     // Light Leather
+            { 2319, {100, 100} },  // Medium Leather
+            { 4234, {150, 150} },   // Heavy Leather
+            { 4304, {200, 200} },   // Thick Leather
+            { 8170, {250, 250} },   // Rugged Leather
+            { 15417, {300, 300} },  // Devilsaur Leather
+            { 15415, {325, 325} },  // Blue Dragonscale
+            { 15416, {325, 325} },  // Black Dragonscale
+            { 21887, {350, 350} },  // Knothide Leather
+            { 25700, {375, 375} },  // Fel Scales
+            { 25707, {400, 400} },  // Fel Hide
+            { 33568, {425, 425} },  // Borean Leather
+            { 38425, {450, 450} },  // Heavy Borean Leather
+            { 44128, {475, 475} },  // Arctic Fur (Rare)
+            { 17012, {375, 375} },  // Core Leather (Molten Core, rare)
+            { 29539, {400, 400} },  // Cobra Scales
+            { 29547, {400, 400} },  // Wind Scales
+            { 783, {75, 75} },     // Light Hide
+            { 4232, {125, 125} },   // Medium Hide
+            { 4235, {175, 175} },   // Heavy Hide
+            { 8169, {225, 225} },   // Thick Hide
+            { 8171, {275, 275} },   // Rugged Hide
+            { 6470, {100, 100} },   // Deviate Scale
+            { 6471, {150, 150} },   // Perfect Deviate Scale
+            { 5784, {125, 125} },   // Slimy Murloc Scale
+            { 7286, {175, 175} },   // Black Whelp Scale
+            { 7287, {200, 200} },   // Red Whelp Scale
+            { 5785, {225, 225} },   // Thick Murloc Scale
+            { 8154, {250, 250} },   // Scorpid Scale
+            { 15408, {300, 300} },  // Heavy Scorpid Scale
+            { 15414, {350, 350} },  // Red Dragonscale
+            { 15412, {375, 375} },  // Green Dragonscale
+            { 15417, {400, 400} },  // Blue Dragonscale
+            { 15416, {425, 425} },  // Black Dragonscale (Elite)
+            { 15417, {450, 450} },  // Devilsaur Leather (Elite)
+            { 15419, {475, 475} },  // Pristine Hide of the Beast
+            { 15410, {500, 500} },  // Scale of Onyxia
+            { 15423, {525, 525} }   // Brilliant Chromatic Scale
+        };
 
-        LOG_INFO("module", "Gathering Experience Module Loaded");
-    }
-
-    void OnLogin(Player* player) override
-    {
-        if (!enabled)
-        return;
-
-        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
-        {
-            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience|r module by Thaxtin.");
-        }
-    }
-
-    // Function to calculate scaled experience based on player level and item base XP
-    uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
-    {
-        if (!enabled)
-            return 0;
-
-        uint32 playerLevel = player->GetLevel();
-
-        // No XP gain for characters at or above the max level
-        if (playerLevel >= GATHERING_MAX_LEVEL)
-            return 0;
-
-        // Calculate skill difference and apply diminishing returns
-        uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
-        float skillMultiplier = 1.0f - (skillDifference * 0.005f); // 0.5% reduction per skill point over
-        skillMultiplier = std::max(skillMultiplier, 0.1f); // Ensure the skill multiplier does not go below 0.1
-
-        // Apply level scaling formula
-        float levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
-                                (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
-
-        // Get rarity multiplier
-        float rarityMultiplier = GetRarityMultiplier(itemId);
-
-        // Apply zone-based multiplier for fishing
-        float zoneMultiplier = 1.0f;
-        if (IsFishingItem(itemId))
-        {
-            zoneMultiplier = GetFishingZoneMultiplier(player->GetZoneId());
-            LOG_INFO("module", "Fishing item detected. Zone multiplier: {}", zoneMultiplier);
-        }
-
-        // Calculate final XP with scaling, diminishing returns, rarity multiplier, and zone multiplier
-        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier * zoneMultiplier);
-
-        // Apply minimum and maximum XP constraints
-        uint32 finalXP = std::clamp(scaledXP, MIN_EXPERIENCE_GAIN, MAX_EXPERIENCE_GAIN);
-
-        // Debug logging
-        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ZoneMultiplier: {:.2f}, ScaledXP: {}, FinalXP: {}", 
-                itemId, baseXP, skillDifference, skillMultiplier, levelMultiplier, rarityMultiplier, zoneMultiplier, scaledXP, finalXP);
-
-        return finalXP;
-    }
-
-    // Function to get base XP and required skill for different mining, herbalism items, and skinning items
-    std::pair<uint32, uint32> GetGatheringBaseXPAndRequiredSkill(uint32 itemId)
-    {
-        if (!enabled)
-            return {0, 0};
-        
-        // Mining item XP and required skill values
-        const std::map<uint32, std::pair<uint32, uint32>> miningItemsXP = {
+        // Initialize other maps similarly
+        miningItemsXP = {
             { 2770, {50, 1} },    // Copper Ore
-            { 774, {50, 1} },    // Malachite
-            { 818, {75, 1} },    // Tigerseye
+            { 774, {50, 1} },     // Malachite
+            { 818, {75, 1} },     // Tigerseye
             { 2771, {100, 65} },   // Tin Ore
             { 1705, {200, 65} },  // Lesser Moonstone
             { 1529, {175, 65} },  // Jade
@@ -147,8 +115,7 @@ public:
             { 37702, {325, 450} }, // Crystallized Fire
         };
 
-        // Herbalism item XP and required skill values
-        const std::map<uint32, std::pair<uint32, uint32>> herbalismItemsXP = {
+        herbalismItemsXP = {
             { 765, {360, 1} },     // Silverleaf
             { 2447, {360, 1} },    // Peacebloom
             { 2449, {540, 15} },   // Earthroot
@@ -193,51 +160,7 @@ public:
             { 36906, {7920, 435} }, // Icethorn
         };
 
-        // Skinning item XP and required skill values (Leathers, hides, and scales)
-        const std::map<uint32, std::pair<uint32, uint32>> skinningItemsXP = {
-            { 2934, {25, 25} },    // Ruined Leather Scraps
-            { 2318, {50, 1} },     // Light Leather
-            { 2319, {100, 100} },  // Medium Leather
-            { 4234, {150, 150} },   // Heavy Leather
-            { 4304, {200, 200} },   // Thick Leather
-            { 8170, {250, 250} },   // Rugged Leather
-            { 15417, {300, 300} },  // Devilsaur Leather
-            { 15415, {325, 325} },  // Blue Dragonscale
-            { 15416, {325, 325} },  // Black Dragonscale
-            { 21887, {350, 350} },  // Knothide Leather
-            { 25700, {375, 375} },  // Fel Scales
-            { 25707, {400, 400} },  // Fel Hide
-            { 33568, {425, 425} },  // Borean Leather
-            { 38425, {450, 450} },  // Heavy Borean Leather
-            { 44128, {475, 475} },  // Arctic Fur (Rare)
-            { 17012, {375, 375} },  // Core Leather (Molten Core, rare)
-            { 29539, {400, 400} },  // Cobra Scales
-            { 29547, {400, 400} },  // Wind Scales
-            { 783, {75, 75} },     // Light Hide
-            { 4232, {125, 125} },   // Medium Hide
-            { 4235, {175, 175} },   // Heavy Hide
-            { 8169, {225, 225} },   // Thick Hide
-            { 8171, {275, 275} },   // Rugged Hide
-            { 6470, {100, 100} },   // Deviate Scale
-            { 6471, {150, 150} },   // Perfect Deviate Scale
-            { 5784, {125, 125} },   // Slimy Murloc Scale
-            { 7286, {175, 175} },   // Black Whelp Scale
-            { 7287, {200, 200} },   // Red Whelp Scale
-            { 5785, {225, 225} },   // Thick Murloc Scale
-            { 8154, {250, 250} },   // Scorpid Scale
-            { 15408, {300, 300} },  // Heavy Scorpid Scale
-            { 15414, {350, 350} },  // Red Dragonscale
-            { 15412, {375, 375} },  // Green Dragonscale
-            { 15417, {400, 400} },  // Blue Dragonscale
-            { 15416, {425, 425} },  // Black Dragonscale (Elite)
-            { 15417, {450, 450} },  // Devilsaur Leather (Elite)
-            { 15419, {475, 475} },  // Pristine Hide of the Beast
-            { 15410, {500, 500} },  // Scale of Onyxia
-            { 15423, {525, 525} }   // Brilliant Chromatic Scale
-        };
-
-        // Define fishing items and their XP values
-        const std::map<uint32, std::pair<uint32, uint32>> fishingItemsXP = {
+        fishingItemsXP = {
             { 6291, {10, 0} },     // Raw Brilliant Smallfish
             { 6308, {75, 0} },     // Raw Bristle Whisker Catfish
             { 6317, {50, 0} },     // Raw Loch Frenzy
@@ -271,7 +194,82 @@ public:
             { 41813, {1400, 0} },  // Nettlefish
             { 41814, {1450, 0} },  // Glassfin Minnow
         };
+    }
 
+    // OnWorldInitialize hook to log that the module is loaded
+    void OnBeforeConfigLoad(bool /*reload*/) override
+    {
+        enabled = sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true);
+        if (!enabled)
+        {
+            LOG_INFO("module", "Gathering Experience Module is disabled by config.");
+            return;
+        }
+
+        LOG_INFO("module", "Gathering Experience Module Loaded");
+    }
+
+    void OnLogin(Player* player) override
+    {
+        if (!enabled)
+        return;
+
+        if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
+        {
+            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience|r module by Thaxtin.");
+        }
+    }
+
+    // Function to calculate scaled experience based on player level and item base XP
+    uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
+    {
+        if (!enabled)
+            return 0;
+
+        uint32 playerLevel = player->GetLevel();
+
+        // No XP gain for characters at or above the max level
+        if (playerLevel >= GATHERING_MAX_LEVEL)
+            return 0;
+
+        // Calculate skill difference and apply diminishing returns
+        uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
+        float skillMultiplier = 1.0f - (skillDifference * 0.02f); // 2% reduction per skill point over
+        skillMultiplier = std::max(skillMultiplier, 0.1f); // Minimum 10% of base XP
+
+        // Apply level scaling formula
+        float levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
+                                (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
+
+        // Get rarity multiplier
+        float rarityMultiplier = GetRarityMultiplier(itemId);
+
+        // Apply zone-based multiplier for fishing
+        float zoneMultiplier = 1.0f;
+        if (IsFishingItem(itemId))
+        {
+            zoneMultiplier = GetFishingZoneMultiplier(player->GetZoneId());
+        }
+
+        // Calculate final XP with scaling and diminishing returns
+        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier * zoneMultiplier);
+
+        // Apply minimum and maximum XP constraints
+        uint32 finalXP = std::clamp(scaledXP, MIN_EXPERIENCE_GAIN, MAX_EXPERIENCE_GAIN);
+
+        // Debug logging
+        LOG_INFO("module", "CalculateExperience - ItemId: {}, BaseXP: {}, CurrentSkill: {}, RequiredSkill: {}, SkillDifference: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ZoneMultiplier: {:.2f}, ScaledXP: {}, FinalXP: {}", 
+                itemId, baseXP, currentSkill, requiredSkill, skillDifference, skillMultiplier, levelMultiplier, rarityMultiplier, zoneMultiplier, scaledXP, finalXP);
+
+        return finalXP;
+    }
+
+    // Function to get base XP and required skill for different mining, herbalism items, and skinning items
+    std::pair<uint32, uint32> GetGatheringBaseXPAndRequiredSkill(uint32 itemId)
+    {
+        if (!enabled)
+            return {0, 0};
+        
         // Check if the item is a mining item
         auto miningXP = miningItemsXP.find(itemId);
         if (miningXP != miningItemsXP.end())
