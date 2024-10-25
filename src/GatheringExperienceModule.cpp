@@ -236,14 +236,16 @@ public:
         float skillMultiplier;
         if (IsFishingItem(itemId)) {
             // Base multiplier of 2.5 with 0.4% increase per skill point
-            skillMultiplier = 2.5f + (currentSkill * 0.004f);
-            
-            // Cap at 4.0 (400% of base XP at skill 400)
+            skillMultiplier = 2.0f + (currentSkill * 0.005f);
             skillMultiplier = std::min(skillMultiplier, 4.0f);
-            
-            LOG_DEBUG("module", "Fishing skill multiplier calculation: base 2.5 + ({} * 0.004) = {}", 
-                     currentSkill, skillMultiplier);
-        } else {
+        }
+        else if (IsSkinningItem(itemId)) {
+            // New skinning calculation - similar to fishing but slightly lower multipliers
+            skillMultiplier = 1.5f + (currentSkill * 0.004f);
+            skillMultiplier = std::min(skillMultiplier, 3.0f);
+        }
+        else {
+            // Original diminishing returns for mining/herbalism
             uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
             skillMultiplier = 1.0f - (skillDifference * 0.02f);
             skillMultiplier = std::max(skillMultiplier, 0.1f);
