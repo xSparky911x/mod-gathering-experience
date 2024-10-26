@@ -429,14 +429,14 @@ public:
 
         if (skillType == SKILL_NONE)
         {
-            LOG_DEBUG("module", "Player lacks required skill for item {}", itemId);
+            LOG_DEBUG("module", "Player {} lacks required skill for item {}", player->GetName(), itemId);
             return;
         }
 
         uint32 xp = CalculateExperience(player, baseXP, requiredSkill, currentSkill, itemId);
         
-        LOG_INFO("module", "{} XP gained - {} (skill {}): {} XP from ItemId: {}", 
-                 xp, GetSkillName(skillType), currentSkill, baseXP, itemId);
+        LOG_INFO("module", "{} XP gained - Player: {}, {} (skill {}): {} XP from Item: {} ({})", 
+                 xp, player->GetName(), GetSkillName(skillType), currentSkill, baseXP, item->GetTemplate()->Name1, itemId);
 
         player->GiveXP(xp, nullptr);
     }
