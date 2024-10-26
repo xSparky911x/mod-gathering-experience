@@ -384,7 +384,7 @@ public:
 
         auto it = fishingZoneMultipliers.find(zoneId);
         float multiplier = (it != fishingZoneMultipliers.end()) ? it->second : 1.0f;
-        LOG_INFO("module", "GetFishingZoneMultiplier for zoneId: {}, multiplier: {}", zoneId, multiplier);
+        // LOG_INFO("module", "GetFishingZoneMultiplier for zoneId: {}, multiplier: {}", zoneId, multiplier);
         return multiplier;
     }
 
@@ -435,8 +435,8 @@ public:
 
         uint32 xp = CalculateExperience(player, baseXP, requiredSkill, currentSkill, itemId);
         
-        LOG_INFO("module", "{} XP gained - Player: {}, {} (skill {}): {} XP from Item: {} ({})", 
-                 xp, player->GetName(), GetSkillName(skillType), currentSkill, baseXP, item->GetTemplate()->Name1, itemId);
+        LOG_INFO("module", "Player {} gained {} XP from {} (skill {}) {} ({})",
+                 player->GetName(), xp, GetSkillName(skillType), currentSkill, item->GetTemplate()->Name1, itemId);
 
         player->GiveXP(xp, nullptr);
     }
