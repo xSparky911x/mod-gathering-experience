@@ -28,52 +28,91 @@ public:
     {
         // Initialize skinningItemsXP map
         skinningItemsXP = {
-            { 2934, {360, 1} },     // Ruined Leather Scraps (starter)
-            { 2318, {400, 1} },     // Light Leather
-            { 2319, {600, 100} },    // Medium Leather (increased from 450)
-            { 4234, {800, 150} },    // Heavy Leather (increased from 500)
-            { 4304, {1000, 200} },   // Thick Leather (increased from 600)
-            { 8170, {1400, 250} },   // Rugged Leather (increased from 700)
-            { 15417, {1800, 300} },  // Devilsaur Leather (increased from 800)
-            { 15415, {2000, 325} },  // Blue Dragonscale (increased from 850)
-            { 15416, {2000, 325} },  // Black Dragonscale
-            { 21887, {2400, 350} },  // Knothide Leather
-            { 25700, {2800, 375} },  // Fel Scales
-            { 25707, {3000, 400} },  // Fel Hide
-            { 33568, {3200, 425} },  // Borean Leather
-            { 38425, {3400, 450} },  // Heavy Borean Leather
-            { 44128, {3600, 475} },  // Arctic Fur
-            // Special/rare items
-            { 17012, {2800, 375} },  // Core Leather
-            { 15419, {3000, 475} },  // Pristine Hide of the Beast
-            // ... other special items ...
+            { 2934, {25, 1} },     // Ruined Leather Scraps - Changed required skill to 1
+            { 2318, {50, 1} },     // Light Leather
+            { 2319, {100, 100} },  // Medium Leather
+            { 4234, {150, 150} },   // Heavy Leather
+            { 4304, {200, 200} },   // Thick Leather
+            { 8170, {250, 250} },   // Rugged Leather
+            { 15417, {300, 300} },  // Devilsaur Leather
+            { 15415, {325, 325} },  // Blue Dragonscale
+            { 15416, {325, 325} },  // Black Dragonscale
+            { 21887, {350, 350} },  // Knothide Leather
+            { 25700, {375, 375} },  // Fel Scales
+            { 25707, {400, 400} },  // Fel Hide
+            { 33568, {425, 425} },  // Borean Leather
+            { 38425, {450, 450} },  // Heavy Borean Leather
+            { 44128, {475, 475} },  // Arctic Fur (Rare)
+            { 17012, {375, 375} },  // Core Leather (Molten Core, rare)
+            { 29539, {400, 400} },  // Cobra Scales
+            { 29547, {400, 400} },  // Wind Scales
+            { 783, {75, 75} },     // Light Hide
+            { 4232, {125, 125} },   // Medium Hide
+            { 4235, {175, 175} },   // Heavy Hide
+            { 8169, {225, 225} },   // Thick Hide
+            { 8171, {275, 275} },   // Rugged Hide
+            { 6470, {100, 100} },   // Deviate Scale
+            { 6471, {150, 150} },   // Perfect Deviate Scale
+            { 5784, {125, 125} },   // Slimy Murloc Scale
+            { 7286, {175, 175} },   // Black Whelp Scale
+            { 7287, {200, 200} },   // Red Whelp Scale
+            { 5785, {225, 225} },   // Thick Murloc Scale
+            { 8154, {250, 250} },   // Scorpid Scale
+            { 15408, {300, 300} },  // Heavy Scorpid Scale
+            { 15414, {350, 350} },  // Red Dragonscale
+            { 15412, {375, 375} },  // Green Dragonscale
+            { 15417, {400, 400} },  // Blue Dragonscale
+            { 15416, {425, 425} },  // Black Dragonscale (Elite)
+            { 15417, {450, 450} },  // Devilsaur Leather (Elite)
+            { 15419, {475, 475} },  // Pristine Hide of the Beast
+            { 15410, {500, 500} },  // Scale of Onyxia
+            { 15423, {525, 525} }   // Brilliant Chromatic Scale
         };
 
         // Initialize other maps similarly
         miningItemsXP = {
-            { 2770, {360, 1} },     // Copper Ore (starter)
-            { 774, {360, 1} },      // Malachite
-            { 818, {400, 1} },      // Tigerseye
-            { 2771, {600, 65} },    // Tin Ore (increased from 450)
-            { 1705, {700, 65} },    // Lesser Moonstone (increased from 500)
-            { 1529, {700, 65} },    // Jade
-            { 1210, {650, 65} },    // Shadowgem
-            { 1206, {675, 65} },    // Moss Agate
-            { 2836, {600, 65} },    // Coarse Stone
-            { 2775, {825, 75} },    // Silver Ore (increased from 525)
-            { 2772, {1000, 125} },  // Iron Ore (increased from 600)
-            { 3864, {1200, 125} },  // Citrine (increased from 700)
-            { 2838, {800, 125} },   // Heavy Stone
-            { 2776, {1400, 155} },  // Gold Ore (increased from 800)
-            { 7909, {1600, 155} },  // Aquamarine (increased from 900)
-            { 3858, {1800, 175} },  // Mithril Ore
-            { 7912, {1000, 175} },  // Solid Stone
-            { 7911, {2000, 205} },  // Truesilver Ore
-            { 10620, {2400, 230} }, // Thorium Ore
-            { 12800, {2800, 230} }, // Azerothian Diamond
-            { 12364, {2800, 230} }, // Huge Emerald
-            { 12363, {3000, 230} }, // Arcane Crystal
-            // ... higher tiers continue scaling up ...
+            { 2770, {50, 1} },    // Copper Ore
+            { 774, {50, 1} },     // Malachite
+            { 818, {75, 1} },     // Tigerseye
+            { 2771, {100, 65} },   // Tin Ore
+            { 1705, {200, 65} },  // Lesser Moonstone
+            { 1529, {175, 65} },  // Jade
+            { 1210, {100, 65} },  // Shadowgem
+            { 1206, {150, 65} },  // Moss Agate
+            { 2836, {50, 65} },   // Coarse Stone
+            { 2775, {150, 75} },   // Silver Ore
+            { 2772, {200, 125} },  // Iron Ore
+            { 3864, {300, 125} },  // Citrine
+            { 2838, {75, 125} },   // Heavy Stone
+            { 2776, {250, 155} },  // Gold Ore
+            { 7909, {650, 155} },  // Aquamarine
+            { 3858, {400, 175} },  // Mithril Ore
+            { 7912, {125, 175} },  // Solid Stone
+            { 7911, {350, 205} },  // Truesilver Ore
+            { 10620, {400, 230} }, // Thorium Ore
+            { 12800, {650, 230} }, // Azerothian Diamond
+            { 12364, {700, 230} }, // Huge Emerald
+            { 12363, {750, 230} }, // Arcane Crystal
+            { 12799, {675, 230} }, // Large Opal
+            { 12361, {700, 230} }, // Blue Sapphire
+            { 7910, {625, 230} },  // Star Ruby
+            { 12365, {100, 230} }, // Dense Stone
+            { 11370, {375, 230} }, // Dark Iron Ore
+            { 19774, {675, 255} }, // Souldarite
+            { 23424, {425, 275} }, // Fel Iron Ore
+            { 11754, {600, 300} }, // Black Diamond
+            { 11382, {800, 300} }, // Blood of the Mountain
+            { 22202, {575, 305} }, // Small Obsidian Shard
+            { 22203, {625, 305} }, // Large Obsidian Shard
+            { 23425, {450, 325} }, // Adamantite Ore
+            { 37705, {400, 350} }, // Crystallized Water            
+            { 37701, {300, 350} }, // Crystallized Earth
+            { 36909, {500, 350} }, // Cobalt Ore
+            { 23426, {475, 375} }, // Khorium Ore
+            { 36912, {550, 400} }, // Saronite Ore
+            { 37703, {350, 400} }, // Crystallized Shadow
+            { 36910, {525, 450} }, // Titanium Ore
+            { 37702, {325, 450} }, // Crystallized Fire
         };
 
         herbalismItemsXP = {
@@ -194,7 +233,23 @@ public:
             return 0;
 
         // Calculate skill multiplier
-        float skillMultiplier = 1.0f;  // Remove variable scaling
+        float skillMultiplier;
+        if (IsFishingItem(itemId)) {
+            // Base multiplier of 2.5 with 0.4% increase per skill point
+            skillMultiplier = 2.0f + (currentSkill * 0.005f);
+            skillMultiplier = std::min(skillMultiplier, 4.0f);
+        }
+        else if (IsSkinningItem(itemId)) {
+            // New skinning calculation - similar to fishing but slightly lower multipliers
+            skillMultiplier = 1.5f + (currentSkill * 0.004f);
+            skillMultiplier = std::min(skillMultiplier, 3.0f);
+        }
+        else {
+            // Original diminishing returns for mining/herbalism
+            uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
+            skillMultiplier = 1.0f - (skillDifference * 0.02f);
+            skillMultiplier = std::max(skillMultiplier, 0.1f);
+        }
 
         // Apply level scaling formula
         float levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
@@ -206,7 +261,7 @@ public:
         // Apply zone-based multiplier for fishing
         float zoneMultiplier = IsFishingItem(itemId) ? GetFishingZoneMultiplier(player->GetZoneId()) : 1.0f;
 
-        // Calculate final XP
+        // Calculate final XP with scaling and diminishing returns
         uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier * zoneMultiplier);
 
         // Higher minimum XP for fishing (scales with skill level)
