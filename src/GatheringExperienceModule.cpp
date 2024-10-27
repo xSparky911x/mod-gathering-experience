@@ -9,6 +9,9 @@
 #include "ChatCommand.h"
 #include <iostream> // Include for logging
 
+// Add this line to use the correct namespace
+using namespace Acore::ChatCommands;
+
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
