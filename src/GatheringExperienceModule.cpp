@@ -13,6 +13,9 @@ const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
 
+// Near the top of your file, add:
+#define GATHERING_EXPERIENCE_VERSION "40fe6af"
+
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
 private:
@@ -22,6 +25,7 @@ private:
     std::map<uint32, std::pair<uint32, uint32>> fishingItemsXP;
 
     bool enabled;
+    std::string version;
 
 public:
     GatheringExperienceModule() : PlayerScript("GatheringExperienceModule"), WorldScript("GatheringExperienceModule") 
@@ -199,6 +203,8 @@ public:
             { 41813, {1400, 0} },  // Nettlefish
             { 41814, {1450, 0} },  // Glassfin Minnow
         };
+
+        version = GATHERING_EXPERIENCE_VERSION;
     }
 
     // OnWorldInitialize hook to log that the module is loaded
@@ -488,16 +494,22 @@ public:
         auto it = skinningItemsXP.find(itemId);
         return it != skinningItemsXP.end();
     }
+
+    // Add this new method
+    static std::string GetVersion()
+    {
+        return GATHERING_EXPERIENCE_VERSION;
+    }
 };
 
 // Register the script so AzerothCore knows to use it
 void AddGatheringExperienceModuleScripts()
 {
     new GatheringExperienceModule();
+    new GatheringExperienceCommand();
 }
 
 void Addmod_gathering_experience()
 {
     AddGatheringExperienceModuleScripts();
 }
-
