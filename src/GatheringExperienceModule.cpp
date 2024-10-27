@@ -6,6 +6,7 @@
 #include "SkillDiscovery.h"
 #include "Config.h"
 #include "Chat.h"
+#include "ChatCommand.h"
 #include <iostream> // Include for logging
 
 // Define the maximum level for gathering scaling
@@ -14,7 +15,7 @@ const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
 
 // Near the top of your file, add:
-#define GATHERING_EXPERIENCE_VERSION "b209d90"
+#define GATHERING_EXPERIENCE_VERSION "4679f8c"
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -508,11 +509,11 @@ class GatheringExperienceCommand : public CommandScript
 public:
     GatheringExperienceCommand() : CommandScript("GatheringExperienceCommand") { }
 
-    std::vector<ChatCommand> GetCommands() const override
+    ChatCommandTable GetCommands() const override
     {
-        static std::vector<ChatCommand> gatheringExperienceCommandTable =
+        static ChatCommandTable gatheringExperienceCommandTable =
         {
-            { "version", SEC_GAMEMASTER, false, &HandleVersionCommand, "" }
+            { "version", HandleVersionCommand, SEC_GAMEMASTER, Console::Yes }
         };
         return gatheringExperienceCommandTable;
     }
