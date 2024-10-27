@@ -14,7 +14,7 @@ const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
 
 // Near the top of your file, add:
-#define GATHERING_EXPERIENCE_VERSION "40fe6af"
+#define GATHERING_EXPERIENCE_VERSION "b209d90"
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -502,7 +502,29 @@ public:
     }
 };
 
-// Register the script so AzerothCore knows to use it
+// Add this before AddGatheringExperienceModuleScripts
+class GatheringExperienceCommand : public CommandScript
+{
+public:
+    GatheringExperienceCommand() : CommandScript("GatheringExperienceCommand") { }
+
+    std::vector<ChatCommand> GetCommands() const override
+    {
+        static std::vector<ChatCommand> gatheringExperienceCommandTable =
+        {
+            { "version", SEC_GAMEMASTER, false, &HandleVersionCommand, "" }
+        };
+        return gatheringExperienceCommandTable;
+    }
+
+    static bool HandleVersionCommand(ChatHandler* handler, char const* /*args*/)
+    {
+        handler->PSendSysMessage("Gathering Experience Module Version: %s", GatheringExperienceModule::GetVersion().c_str());
+        return true;
+    }
+};
+
+// Now the AddGatheringExperienceModuleScripts function
 void AddGatheringExperienceModuleScripts()
 {
     new GatheringExperienceModule();
