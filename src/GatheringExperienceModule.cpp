@@ -7,11 +7,15 @@
 #include "Config.h"
 #include "Chat.h"
 #include <iostream> // Include for logging
+#include "ChatCommand.h"
+
+using namespace Acore::ChatCommands;
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
+const char* GATHERING_EXPERIENCE_VERSION = "1.0.0";
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -490,10 +494,37 @@ public:
     }
 };
 
-// Register the script so AzerothCore knows to use it
+class GatheringExperienceCommandScript : public CommandScript
+{
+public:
+    GatheringExperienceCommandScript() : CommandScript("GatheringExperienceCommandScript") { }
+
+    ChatCommandTable GetCommands() const override
+    {
+        static ChatCommandTable gatheringCommandTable =
+        {
+            { "version", HandleGatheringVersionCommand, SEC_GAMEMASTER, Console::Yes }
+        };
+
+        static ChatCommandTable commandTable =
+        {
+            { "gathering", gatheringCommandTable }
+        };
+
+        return commandTable;
+    }
+
+    static bool HandleGatheringVersionCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        handler->PSendSysMessage("Gathering Experience Module Version: {}", GATHERING_EXPERIENCE_VERSION);
+        return true;
+    }
+};
+
 void AddGatheringExperienceModuleScripts()
 {
     new GatheringExperienceModule();
+    new GatheringExperienceCommandScript();
 }
 
 void Addmod_gathering_experience()
