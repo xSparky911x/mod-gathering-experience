@@ -34,6 +34,7 @@ public:
         skinningItemsXP = {
             { 2934, {25, 1} },     // Ruined Leather Scraps - Changed required skill to 1
             { 2318, {50, 1} },     // Light Leather
+            { 783, {150, 75} },     // Light Hide
             { 2319, {100, 100} },  // Medium Leather
             { 4234, {150, 150} },   // Heavy Leather
             { 4304, {200, 200} },   // Thick Leather
@@ -50,7 +51,6 @@ public:
             { 17012, {375, 375} },  // Core Leather (Molten Core, rare)
             { 29539, {400, 400} },  // Cobra Scales
             { 29547, {400, 400} },  // Wind Scales
-            { 783, {75, 75} },     // Light Hide
             { 4232, {125, 125} },   // Medium Hide
             { 4235, {175, 175} },   // Heavy Hide
             { 8169, {225, 225} },   // Thick Hide
@@ -225,7 +225,7 @@ public:
 
         if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
         {
-            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience|r module by Thaxtin.");
+            ChatHandler(player->GetSession()).SendSysMessage("This server is running the |cff4CFF00Gathering Experience v{}|r module by Thaxtin.", GATHERING_EXPERIENCE_VERSION);
         }
     }
 
