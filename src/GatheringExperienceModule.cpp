@@ -59,6 +59,8 @@ public:
             { 5785, {225, 225} },   // Thick Murloc Scale
             { 8154, {250, 250} },   // Scorpid Scale
             { 15408, {300, 300} },  // Heavy Scorpid Scale
+            { 25649, {300, 300} },  // Knothide Leather Scraps
+            { 33567, {400, 350} }  // Borean Leather Scraps
             { 15414, {350, 350} },  // Red Dragonscale
             { 15412, {375, 375} },  // Green Dragonscale
             { 15417, {400, 400} },  // Blue Dragonscale
@@ -154,7 +156,7 @@ public:
             { 22792, {6840, 365} }, // Nightmare Vine
             { 22793, {7020, 375} }, // Mana Thistle
             { 36904, {7560, 375} }, // Tiger Lily
-            {22710, {315, 375}},  // Blood Thistle
+            { 22710, {7560, 375}},  // Blood Thistle
             { 36903, {7380, 400} }, // Adder's Tongue
             { 36907, {8100, 400} }, // Talandra's Rose
             { 36905, {7740, 425} }, // Lichbloom
@@ -170,7 +172,7 @@ public:
             { 6361, {400, 0} },    // Raw Rainbow Fin Albacore (was 200)
             { 6362, {500, 0} },    // Raw Rockscale Cod (was 250)
             { 6289, {250, 0} },    // Raw Longjaw Mud Snapper (was 125)
-            { 13422, {150, 0} },  // Stonescale Eel
+            { 13422, {450, 0} },  // Stonescale Eel
             { 13756, {205, 0} },  // Raw Spotted Yellowtail
             { 21071, {600, 0} },   // Raw Sagefish (was 300)
             { 21153, {700, 0} },   // Raw Greater Sagefish (was 350)
@@ -498,3 +500,4 @@ void Addmod_gathering_experience()
 {
     AddGatheringExperienceModuleScripts();
 }
+
