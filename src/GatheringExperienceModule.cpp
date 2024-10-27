@@ -64,7 +64,7 @@ public:
             { 8154, {250, 250} },   // Scorpid Scale
             { 15408, {300, 300} },  // Heavy Scorpid Scale
             { 25649, {300, 300} },  // Knothide Leather Scraps
-            { 33567, {400, 350} }  // Borean Leather Scraps
+            { 33567, {400, 350} },  // Borean Leather Scraps
             { 15414, {350, 350} },  // Red Dragonscale
             { 15412, {375, 375} },  // Green Dragonscale
             { 15417, {400, 400} },  // Blue Dragonscale
