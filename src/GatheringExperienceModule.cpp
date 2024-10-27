@@ -38,7 +38,7 @@ public:
             { 15415, {325, 325} },  // Blue Dragonscale
             { 15416, {325, 325} },  // Black Dragonscale
             { 21887, {350, 350} },  // Knothide Leather
-            { 25700, {375, 375} },  // Fel Scales
+            { 25700, {375, 310} },  // Fel Scales
             { 25707, {400, 400} },  // Fel Hide
             { 33568, {425, 425} },  // Borean Leather
             { 38425, {450, 450} },  // Heavy Borean Leather
