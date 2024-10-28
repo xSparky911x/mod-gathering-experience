@@ -10,7 +10,7 @@ The Gathering Experience Module is a custom addition for AzerothCore that enhanc
 - Implements diminishing returns to balance XP gains.
 - Provides extra XP bonuses for rare and super rare items.
 - Includes zone-based XP multipliers for fishing to encourage exploration.
-- Configurable enable/disable option and player announcement on login.
+- Configurable enable/disable option and announcement on player login.
 
 ## Installation
 
@@ -40,9 +40,12 @@ All commands require GM level access:
 - `.gathering modify <itemId> <field> <value>`: Modifies an existing gathering item
   - Valid fields: basexp, reqskill, profession, name
   - For profession: Mining, Herbalism, Skinning, Fishing
+  - For name: The name of the item to add in quotes
 
 Example commands:
-
+- `.gathering add 2447 360 1 Herbalism "Peacebloom"`
+- `.gathering remove 2447`
+- `.gathering modify 2447 basexp 360`
 
 ## Credits
 
