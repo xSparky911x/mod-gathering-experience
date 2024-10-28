@@ -137,27 +137,34 @@ public:
 
         uint32 itemId = item->GetEntry();
         uint32 experience = 0;
+        uint32 redLevel = 0;  // Add this
+
+        auto it = gatheringData.find(itemId);
+        if (it != gatheringData.end())
+        {
+            redLevel = it->second.requiredSkill;  // Get the required skill level
+        }
 
         // Check profession type based on item
         if (IsValidGatheringItem(itemId, 1)) // Mining
         {
             experience = CalculateExperience(itemId, player);
-            player->UpdateGatherSkill(SKILL_MINING, experience);
+            player->UpdateGatherSkill(SKILL_MINING, experience, redLevel);
         }
         else if (IsValidGatheringItem(itemId, 2)) // Herbalism
         {
             experience = CalculateExperience(itemId, player);
-            player->UpdateGatherSkill(SKILL_HERBALISM, experience);
+            player->UpdateGatherSkill(SKILL_HERBALISM, experience, redLevel);
         }
         else if (IsValidGatheringItem(itemId, 3)) // Skinning
         {
             experience = CalculateExperience(itemId, player);
-            player->UpdateGatherSkill(SKILL_SKINNING, experience);
+            player->UpdateGatherSkill(SKILL_SKINNING, experience, redLevel);
         }
         else if (IsValidGatheringItem(itemId, 4)) // Fishing
         {
             experience = CalculateExperience(itemId, player);
-            player->UpdateGatherSkill(SKILL_FISHING, experience);
+            player->UpdateGatherSkill(SKILL_FISHING, experience, redLevel);
         }
 
         if (experience > 0)
