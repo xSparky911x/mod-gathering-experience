@@ -68,15 +68,14 @@ public:
 
     void LoadDataFromDB()
     {
-        if (dataLoaded)
-            return;
-
         try 
         {
-            // Clear existing data
+            // Clear existing data - make this more explicit
+            LOG_INFO("server.loading", "Clearing existing gathering data from memory...");
             gatheringItems.clear();
             rarityMultipliers.clear();
             zoneMultipliers.clear();
+            dataLoaded = false;  // Reset the dataLoaded flag
 
             // Load gathering items
             if (QueryResult result = WorldDatabase.Query("SELECT item_id, base_xp, required_skill, profession, name FROM gathering_experience"))
@@ -94,7 +93,11 @@ public:
                     gatheringItems[itemId] = item;
                     count++;
                 } while (result->NextRow());
-                LOG_INFO("server.loading", "Loaded %u gathering items", count);
+                LOG_INFO("server.loading", "Loaded {} gathering items", count);
+            }
+            else
+            {
+                LOG_INFO("server.loading", "No gathering items found in database");
             }
 
             // Load rarity multipliers
@@ -107,7 +110,7 @@ public:
                     rarityMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
                     count++;
                 } while (result->NextRow());
-                LOG_INFO("server.loading", "Loaded %u rarity multipliers", count);
+                LOG_INFO("server.loading", "Loaded {} rarity multipliers", count);
             }
 
             // Load zone multipliers
@@ -120,7 +123,7 @@ public:
                     zoneMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
                     count++;
                 } while (result->NextRow());
-                LOG_INFO("server.loading", "Loaded %u zone multipliers", count);
+                LOG_INFO("server.loading", "Loaded {} zone multipliers", count);
             }
 
             dataLoaded = true;
@@ -128,7 +131,12 @@ public:
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR("server.loading", "Error loading GatheringExperienceModule data: %s", e.what());
+            LOG_ERROR("server.loading", "Error loading GatheringExperienceModule data: {}", e.what());
+            // In case of error, ensure data is cleared
+            gatheringItems.clear();
+            rarityMultipliers.clear();
+            zoneMultipliers.clear();
+            dataLoaded = false;
         }
     }
 
@@ -139,7 +147,7 @@ public:
 
         if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
         {
-            std::string message = "This server is running the |cff4CFF00Gathering Experience v|r" + std::string(GATHERING_EXPERIENCE_VERSION) + " module by Thaxtin.";
+            std::string message = "This server is running the |cff4CFF00Gathering Experience|r module v" + std::string(GATHERING_EXPERIENCE_VERSION) + " by Thaxtin.";
             ChatHandler(player->GetSession()).SendSysMessage(message.c_str());
         }
     }
@@ -196,7 +204,7 @@ public:
         // Apply minimum and maximum XP constraints
         uint32 finalXP = std::clamp(scaledXP, minXP, MAX_EXPERIENCE_GAIN);
 
-        LOG_DEBUG("server.loading", "CalculateExperience - ItemId: %u, BaseXP: %u, CurrentSkill: %u, RequiredSkill: %u, SkillMultiplier: %.2f, LevelMultiplier: %.2f, RarityMultiplier: %.2f, ZoneMultiplier: %.2f, ScaledXP: %u, FinalXP: %u", 
+        LOG_DEBUG("server.loading", "CalculateExperience - ItemId: {}, BaseXP: {}, CurrentSkill: {}, RequiredSkill: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ZoneMultiplier: {:.2f}, ScaledXP: {}, FinalXP: {}", 
                 itemId, baseXP, currentSkill, requiredSkill, skillMultiplier, levelMultiplier, rarityMultiplier, zoneMultiplier, scaledXP, finalXP);
 
         return finalXP;
@@ -240,11 +248,16 @@ public:
             return;
 
         uint32 itemId = item->GetEntry();
+        
+        // Add debug logging
+        LOG_DEBUG("server.loading", "OnLootItem triggered for item {} - Checking if it's in gathering items...", itemId);
+        LOG_DEBUG("server.loading", "Current number of gathering items in memory: {}", gatheringItems.size());
+        
         auto [baseXP, requiredSkill] = GetGatheringBaseXPAndRequiredSkill(itemId);
         
         if (baseXP == 0)
         {
-            LOG_DEBUG("server.loading", "Item %u not recognized as a gathering item", itemId);
+            LOG_DEBUG("server.loading", "Item {} not recognized as a gathering item", itemId);
             return;
         }
 
@@ -275,19 +288,19 @@ public:
 
         if (skillType == SKILL_NONE)
         {
-            LOG_DEBUG("server.loading", "Player %s lacks required skill for item %u", player->GetName(), itemId);
+            LOG_DEBUG("server.loading", "Player {} lacks required skill for item {}", player->GetName(), itemId);
             return;
         }
 
         uint32 xp = CalculateExperience(player, baseXP, requiredSkill, currentSkill, itemId);
         
-        LOG_INFO("server.loading", "Player %s gained %u XP from %s (skill %u) %s (%u)",
-                 player->GetName().c_str(),  // Player name
-                 xp,                         // XP gained
-                 GetSkillName(skillType),    // Skill name
-                 currentSkill,               // Current skill level
-                 item->GetTemplate()->Name1.c_str(), // Item name
-                 itemId);                    // Item ID
+        LOG_INFO("server.loading", "Player {} gained {} XP from {} (skill {}) {} ({})",
+                 player->GetName(),         // Player name
+                 xp,                        // XP gained
+                 GetSkillName(skillType),   // Skill name
+                 currentSkill,              // Current skill level
+                 item->GetTemplate()->Name1, // Item name
+                 itemId);                   // Item ID
 
         player->GiveXP(xp, nullptr);
     }
@@ -333,6 +346,15 @@ public:
     {
         auto it = gatheringItems.find(itemId);
         return it != gatheringItems.end() && it->second.profession == 3;
+    }
+
+    bool IsEnabled() const { return enabled; }
+    
+    void SetEnabled(bool state) 
+    { 
+        enabled = state;
+        LOG_INFO("server.loading", "Gathering Experience Module {} by toggle command", 
+            enabled ? "enabled" : "disabled");
     }
 };
 
@@ -406,7 +428,7 @@ public:
         uint8 professionId = GetProfessionIdByName(profName);
         if (professionId == 0)
         {
-            handler->PSendSysMessage("Invalid profession: %s", profName.c_str());
+            handler->PSendSysMessage("Invalid profession: {}", profName);
             handler->SendSysMessage("Valid professions: Mining, Herbalism, Skinning, Fishing");
             return false;
         }
@@ -414,7 +436,17 @@ public:
         WorldDatabase.Execute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) VALUES ({}, {}, {}, {}, '{}')",
             itemId, baseXP, reqSkill, professionId, nameStr);
 
-        handler->PSendSysMessage("Added gathering item %u to database for profession %s.", itemId, profName.c_str());
+        // Force reload of data after adding
+        if (GatheringExperienceModule::instance)
+        {
+            GatheringExperienceModule::instance->LoadDataFromDB();
+            handler->PSendSysMessage("Added gathering item {} to database for profession {} and reloaded data.", itemId, profName);
+        }
+        else
+        {
+            handler->PSendSysMessage("Added gathering item {} to database for profession {}, but failed to reload data.", itemId, profName);
+        }
+        
         return true;
     }
 
@@ -438,21 +470,32 @@ public:
 
         if (!result)
         {
-            handler->PSendSysMessage("Item ID %u not found in gathering database.", itemId);
+            handler->PSendSysMessage("Item ID {} not found in gathering database.", itemId);
             return false;
         }
 
         // Show what we're about to remove
         Field* fields = result->Fetch();
-        handler->PSendSysMessage("Removing - ItemID: %u, BaseXP: %u, ReqSkill: %u, Profession: %s, Name: %s",
+        handler->PSendSysMessage("Removing - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
             fields[0].Get<uint32>(),
             fields[1].Get<uint32>(),
             fields[2].Get<uint32>(),
-            fields[3].Get<std::string>().c_str(),
-            fields[4].Get<std::string>().c_str());
+            fields[3].Get<std::string>(),
+            fields[4].Get<std::string>());
 
         WorldDatabase.Execute("DELETE FROM gathering_experience WHERE item_id = {}", itemId);
-        handler->PSendSysMessage("Removed gathering item %u from database.", itemId);
+        
+        // Force reload of data after removal
+        if (GatheringExperienceModule::instance)
+        {
+            GatheringExperienceModule::instance->LoadDataFromDB();
+            handler->PSendSysMessage("Removed gathering item {} from database and reloaded data.", itemId);
+        }
+        else
+        {
+            handler->PSendSysMessage("Removed gathering item {} from database, but failed to reload data.", itemId);
+        }
+        
         return true;
     }
 
@@ -478,33 +521,33 @@ public:
         QueryResult checkItem = WorldDatabase.Query("SELECT 1 FROM gathering_experience WHERE item_id = {}", itemId);
         if (!checkItem)
         {
-            handler->PSendSysMessage("Item ID %u not found in gathering database.", itemId);
+            handler->PSendSysMessage("Item ID {} not found in gathering database.", itemId);
             return false;
         }
 
         std::string query = "UPDATE gathering_experience SET ";
         if (field == "basexp")
         {
-            query += Acore::StringFormat("base_xp = %u", atoi(value.c_str()));
+            query += Acore::StringFormat("base_xp = {}", atoi(value.c_str()));
         }
         else if (field == "reqskill")
         {
-            query += Acore::StringFormat("required_skill = %u", atoi(value.c_str()));
+            query += Acore::StringFormat("required_skill = {}", atoi(value.c_str()));
         }
         else if (field == "profession")
         {
             uint8 professionId = GetProfessionIdByName(value);
             if (professionId == 0)
             {
-                handler->PSendSysMessage("Invalid profession: %s", value.c_str());
+                handler->PSendSysMessage("Invalid profession: {}", value);
                 handler->SendSysMessage("Valid professions: Mining, Herbalism, Skinning, Fishing");
                 return false;
             }
-            query += Acore::StringFormat("profession = %u", professionId);
+            query += Acore::StringFormat("profession = {}", professionId);
         }
         else if (field == "name")
         {
-            query += Acore::StringFormat("name = '%s'", value.c_str());
+            query += Acore::StringFormat("name = '{}'", value.c_str());
         }
         else
         {
@@ -513,9 +556,19 @@ public:
             return false;
         }
 
-        query += Acore::StringFormat(" WHERE item_id = %u", itemId);
+        query += Acore::StringFormat(" WHERE item_id = {}", itemId);
         WorldDatabase.Execute(query);
-        handler->PSendSysMessage("Modified gathering item %u in database.", itemId);
+        
+        // Force reload of data after modification
+        if (GatheringExperienceModule::instance)
+        {
+            GatheringExperienceModule::instance->LoadDataFromDB();
+            handler->PSendSysMessage("Modified gathering item {} in database and reloaded data.", itemId);
+        }
+        else
+        {
+            handler->PSendSysMessage("Modified gathering item {} in database, but failed to reload data.", itemId);
+        }
         
         // Show updated item details
         QueryResult result = WorldDatabase.Query(
@@ -527,12 +580,12 @@ public:
         if (result)
         {
             Field* fields = result->Fetch();
-            handler->PSendSysMessage("Updated values - ItemID: %u, BaseXP: %u, ReqSkill: %u, Profession: %s, Name: %s",
+            handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
                 fields[0].Get<uint32>(),
                 fields[1].Get<uint32>(),
                 fields[2].Get<uint32>(),
-                fields[3].Get<std::string>().c_str(),
-                fields[4].Get<std::string>().c_str());
+                fields[3].Get<std::string>(),
+                fields[4].Get<std::string>());
         }
 
         return true;
@@ -559,12 +612,12 @@ public:
             do
             {
                 Field* fields = result->Fetch();
-                handler->PSendSysMessage("ItemID: %u, BaseXP: %u, ReqSkill: %u, Profession: %s, Name: %s",
+                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
                     fields[0].Get<uint32>(),    // ItemID
                     fields[1].Get<uint32>(),    // BaseXP
                     fields[2].Get<uint32>(),    // ReqSkill
-                    fields[3].Get<std::string>().c_str(), // Profession name
-                    fields[4].Get<std::string>().c_str()); // Item name
+                    fields[3].Get<std::string>(), // Profession name
+                    fields[4].Get<std::string>()); // Item name
             } while (result->NextRow());
         }
         else
@@ -583,19 +636,19 @@ public:
 
             if (!result)
             {
-                handler->PSendSysMessage("No gathering items found for profession: %s", args);
+                handler->PSendSysMessage("No gathering items found for profession: {}", args);
                 return true;
             }
 
-            handler->PSendSysMessage("Current gathering items for %s:", args);
+            handler->PSendSysMessage("Current gathering items for {}:", args);
             do
             {
                 Field* fields = result->Fetch();
-                handler->PSendSysMessage("ItemID: %u, BaseXP: %u, ReqSkill: %u, Name: %s",
+                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Name: {}",
                     fields[0].Get<uint32>(),    // ItemID
                     fields[1].Get<uint32>(),    // BaseXP
                     fields[2].Get<uint32>(),    // ReqSkill
-                    fields[4].Get<std::string>().c_str()); // Item name
+                    fields[4].Get<std::string>()); // Item name
             } while (result->NextRow());
         }
 

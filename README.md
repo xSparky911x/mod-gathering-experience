@@ -30,7 +30,18 @@ Once installed and enabled, the module works automatically. Players will receive
 
 ### Commands
 
-- `.gathering version`: Displays the current version of the Gathering Experience module.
+All commands require GM level access:
+
+- `.gathering version`: Displays the current version of the module
+- `.gathering reload`: Reloads all gathering data from the database
+- `.gathering list [profession]`: Lists all gathering items for a specific profession
+- `.gathering add <itemId> <baseXP> <reqSkill> <profession> <name>`: Adds a new gathering item
+- `.gathering remove <itemId>`: Removes a gathering item
+- `.gathering modify <itemId> <field> <value>`: Modifies an existing gathering item
+  - Valid fields: basexp, reqskill, profession, name
+  - For profession: Mining, Herbalism, Skinning, Fishing
+
+Example commands:
 
 ## Customization
 
