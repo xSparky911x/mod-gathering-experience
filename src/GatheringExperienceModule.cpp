@@ -11,6 +11,7 @@
 #include "StringFormat.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
+#include <thread> // Include for sleep
 
 using namespace Acore::ChatCommands;
 
@@ -70,12 +71,14 @@ public:
     {
         try 
         {
-            // Clear existing data - make this more explicit
+            LOG_INFO("server.loading", "LoadDataFromDB called - Starting reload...");
+            
+            // Clear existing data
             LOG_INFO("server.loading", "Clearing existing gathering data from memory...");
             gatheringItems.clear();
             rarityMultipliers.clear();
             zoneMultipliers.clear();
-            dataLoaded = false;  // Reset the dataLoaded flag
+            dataLoaded = false;
 
             // Load gathering items
             if (QueryResult result = WorldDatabase.Query("SELECT item_id, base_xp, required_skill, profession, name FROM gathering_experience"))
@@ -127,12 +130,11 @@ public:
             }
 
             dataLoaded = true;
-            LOG_INFO("server.loading", "GatheringExperienceModule - Database loading complete");
+            LOG_INFO("server.loading", "LoadDataFromDB - Reload complete");
         }
         catch (const std::exception& e)
         {
-            LOG_ERROR("server.loading", "Error loading GatheringExperienceModule data: {}", e.what());
-            // In case of error, ensure data is cleared
+            LOG_ERROR("server.loading", "Error in LoadDataFromDB: {}", e.what());
             gatheringItems.clear();
             rarityMultipliers.clear();
             zoneMultipliers.clear();
@@ -213,11 +215,24 @@ public:
     // Function to get base XP and required skill for different mining, herbalism items, and skinning items
     std::pair<uint32, uint32> GetGatheringBaseXPAndRequiredSkill(uint32 itemId)
     {
+        if (gatheringItems.empty())
+        {
+            LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - gatheringItems map is empty!");
+            return {0, 0};
+        }
+
+        LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - Checking item {}", itemId);
+        LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - Items in memory: {}", gatheringItems.size());
+        
         auto it = gatheringItems.find(itemId);
         if (it != gatheringItems.end())
         {
+            LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - Found item {} with baseXP {}", 
+                itemId, it->second.baseXP);
             return {it->second.baseXP, it->second.requiredSkill};
         }
+        
+        LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - Item {} not found in memory", itemId);
         return {0, 0};
     }
 
@@ -250,16 +265,19 @@ public:
         uint32 itemId = item->GetEntry();
         
         // Add debug logging
-        LOG_DEBUG("server.loading", "OnLootItem triggered for item {} - Checking if it's in gathering items...", itemId);
-        LOG_DEBUG("server.loading", "Current number of gathering items in memory: {}", gatheringItems.size());
+        LOG_INFO("server.loading", "OnLootItem triggered for item {} - Checking if it's in gathering items...", itemId);
+        LOG_INFO("server.loading", "Current number of gathering items in memory: {}", gatheringItems.size());
         
         auto [baseXP, requiredSkill] = GetGatheringBaseXPAndRequiredSkill(itemId);
         
         if (baseXP == 0)
         {
-            LOG_DEBUG("server.loading", "Item {} not recognized as a gathering item", itemId);
+            LOG_INFO("server.loading", "Item {} not recognized as a gathering item", itemId);
             return;
         }
+
+        // If we get here, the item was found in memory
+        LOG_INFO("server.loading", "Found item {} in memory with baseXP {}", itemId, baseXP);
 
         uint32 currentSkill = 0;
         SkillType skillType = SKILL_NONE;
@@ -356,6 +374,12 @@ public:
         LOG_INFO("server.loading", "Gathering Experience Module {} by toggle command", 
             enabled ? "enabled" : "disabled");
     }
+
+    // Add this new public method
+    bool HasGatheringItem(uint32 itemId) const
+    {
+        return gatheringItems.count(itemId) > 0;
+    }
 };
 
 // Initialize the static member
@@ -394,15 +418,16 @@ public:
 
     static bool HandleGatheringReloadCommand(ChatHandler* handler, const char* /*args*/)
     {
-        if (GatheringExperienceModule::instance)
+        LOG_INFO("server.loading", "Manual reload command triggered");
+        if (!GatheringExperienceModule::instance)
         {
-            GatheringExperienceModule::instance->LoadDataFromDB();
-            handler->PSendSysMessage("Gathering Experience data reloaded from database.");
-            return true;
+            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
+            return false;
         }
-        
-        handler->PSendSysMessage("Failed to reload Gathering Experience data.");
-        return false;
+
+        GatheringExperienceModule::instance->LoadDataFromDB();
+        handler->PSendSysMessage("Gathering Experience data reloaded from database.");
+        return true;
     }
 
     static bool HandleGatheringAddCommand(ChatHandler* handler, const char* args)
@@ -433,20 +458,17 @@ public:
             return false;
         }
 
-        WorldDatabase.Execute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) VALUES ({}, {}, {}, {}, '{}')",
+        WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) VALUES ({}, {}, {}, {}, '{}')",
             itemId, baseXP, reqSkill, professionId, nameStr);
 
-        // Force reload of data after adding
-        if (GatheringExperienceModule::instance)
+        if (!GatheringExperienceModule::instance)
         {
-            GatheringExperienceModule::instance->LoadDataFromDB();
-            handler->PSendSysMessage("Added gathering item {} to database for profession {} and reloaded data.", itemId, profName);
+            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
+            return false;
         }
-        else
-        {
-            handler->PSendSysMessage("Added gathering item {} to database for profession {}, but failed to reload data.", itemId, profName);
-        }
-        
+
+        GatheringExperienceModule::instance->LoadDataFromDB();
+        handler->PSendSysMessage("Added gathering item {} to database for profession {} and reloaded data.", itemId, profName);
         return true;
     }
 
@@ -474,28 +496,16 @@ public:
             return false;
         }
 
-        // Show what we're about to remove
-        Field* fields = result->Fetch();
-        handler->PSendSysMessage("Removing - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
-            fields[0].Get<uint32>(),
-            fields[1].Get<uint32>(),
-            fields[2].Get<uint32>(),
-            fields[3].Get<std::string>(),
-            fields[4].Get<std::string>());
+        WorldDatabase.DirectExecute("DELETE FROM gathering_experience WHERE item_id = {}", itemId);
 
-        WorldDatabase.Execute("DELETE FROM gathering_experience WHERE item_id = {}", itemId);
-        
-        // Force reload of data after removal
-        if (GatheringExperienceModule::instance)
+        if (!GatheringExperienceModule::instance)
         {
-            GatheringExperienceModule::instance->LoadDataFromDB();
-            handler->PSendSysMessage("Removed gathering item {} from database and reloaded data.", itemId);
+            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
+            return false;
         }
-        else
-        {
-            handler->PSendSysMessage("Removed gathering item {} from database, but failed to reload data.", itemId);
-        }
-        
+
+        GatheringExperienceModule::instance->LoadDataFromDB();
+        handler->PSendSysMessage("Removed gathering item {} and reloaded data.", itemId);
         return true;
     }
 
