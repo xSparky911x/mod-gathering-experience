@@ -1,12 +1,50 @@
--- Create the table
+-- Drop tables in correct order (reverse dependency order)
+DROP TABLE IF EXISTS `gathering_experience`;
+DROP TABLE IF EXISTS `gathering_experience_rarity`;
+DROP TABLE IF EXISTS `gathering_experience_zones`;
+DROP TABLE IF EXISTS `gathering_experience_professions`;
+
+-- Create profession table first (since it's referenced by gathering_experience)
+CREATE TABLE IF NOT EXISTS `gathering_experience_professions` (
+    `profession_id` TINYINT UNSIGNED NOT NULL,
+    `name` VARCHAR(50) NOT NULL,
+    `description` VARCHAR(255),
+    PRIMARY KEY (`profession_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Create main gathering experience table
 CREATE TABLE IF NOT EXISTS `gathering_experience` (
     `item_id` INT UNSIGNED NOT NULL,
     `base_xp` INT UNSIGNED NOT NULL DEFAULT 0,
     `required_skill` INT UNSIGNED NOT NULL DEFAULT 0,
-    `profession` TINYINT UNSIGNED NOT NULL COMMENT '1=Mining, 2=Herbalism, 3=Skinning, 4=Fishing',
+    `profession` TINYINT UNSIGNED NOT NULL,
     `name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'Item name for reference',
-    PRIMARY KEY (`item_id`)
+    PRIMARY KEY (`item_id`),
+    FOREIGN KEY (`profession`) REFERENCES `gathering_experience_professions` (`profession_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Create rarity multiplier table
+CREATE TABLE IF NOT EXISTS `gathering_experience_rarity` (
+    `item_id` INT UNSIGNED NOT NULL,
+    `multiplier` FLOAT NOT NULL DEFAULT 1.0,
+    PRIMARY KEY (`item_id`),
+    FOREIGN KEY (`item_id`) REFERENCES `gathering_experience` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Create fishing zone multiplier table
+CREATE TABLE IF NOT EXISTS `gathering_experience_zones` (
+    `zone_id` INT UNSIGNED NOT NULL,
+    `multiplier` FLOAT NOT NULL DEFAULT 1.0,
+    `name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'Zone name for reference',
+    PRIMARY KEY (`zone_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Insert professions first (since they're referenced)
+INSERT INTO `gathering_experience_professions` (profession_id, name, description) VALUES
+(1, 'Mining', 'Gathering ore and minerals'),
+(2, 'Herbalism', 'Gathering herbs and plants'),
+(3, 'Skinning', 'Gathering leather and hides'),
+(4, 'Fishing', 'Catching fish and other aquatic items');
 
 -- Skinning Data
 INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
@@ -178,13 +216,6 @@ INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession
 (41813, 1400, 0, 4, 'Nettlefish'),
 (41814, 1450, 0, 4, 'Glassfin Minnow');
 
--- Create rarity multiplier table
-CREATE TABLE IF NOT EXISTS `gathering_experience_rarity` (
-    `item_id` INT UNSIGNED NOT NULL,
-    `multiplier` FLOAT NOT NULL DEFAULT 1.0,
-    PRIMARY KEY (`item_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 -- Insert rarity multipliers
 INSERT INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
 (13463, 1.5),  -- Dreamfoil
@@ -207,14 +238,6 @@ INSERT INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
 (15419, 2.5),  -- Pristine Hide of the Beast
 (15410, 3.0),  -- Scale of Onyxia
 (15423, 2.5);  -- Brilliant Chromatic Scale
-
--- Create fishing zone multiplier table
-CREATE TABLE IF NOT EXISTS `gathering_experience_zones` (
-    `zone_id` INT UNSIGNED NOT NULL,
-    `multiplier` FLOAT NOT NULL DEFAULT 1.0,
-    `name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'Zone name for reference',
-    PRIMARY KEY (`zone_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Insert zone multipliers
 INSERT INTO `gathering_experience_zones` (zone_id, multiplier, name) VALUES

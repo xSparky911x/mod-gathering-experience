@@ -4,21 +4,12 @@
 
 [worldserver]
 
-#####################################################
-# Gathering Experience module configuration
-#####################################################
-#
-#    GatheringExperience.Enable
-#        Description: Enable to skip the Gathering Experience module
-#        Default:     1 - Enabled
-#                     0 - Disabled
-#
-#    GatheringExperience.Announce 
-#        Description: Inform the player about the loaded module
-#        Default:     1 - Enabled
-#                     0 - Disabled
-#
+###################################################################################################
+#   GATHERING EXPERIENCE MODULE
+###################################################################################################
 
+# Enable the module? (1: true | 0: false)
 GatheringExperience.Enable = 1
 
+# Announce the module on player login? (1: true | 0: false)
 GatheringExperience.Announce = 1
