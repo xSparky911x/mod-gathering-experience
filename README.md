@@ -43,9 +43,6 @@ All commands require GM level access:
 
 Example commands:
 
-## Customization
-
-The module includes predefined XP values and required skill levels for various gathering items. These can be adjusted in the `GatheringExperienceModule` class constructor if needed.
 
 ## Credits
 
