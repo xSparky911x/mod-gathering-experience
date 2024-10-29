@@ -201,9 +201,15 @@ public:
             skillMultiplier = std::max(skillMultiplier, 0.1f);
         }
 
-        // Apply level scaling formula
-        float levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
-                                (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
+        // Apply level scaling formula (skip for fishing)
+        float levelMultiplier;
+        if (IsFishingItem(itemId)) {
+            levelMultiplier = 1.0f;  // No level scaling for fishing
+        }
+        else {
+            levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
+                              (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
+        }
 
         // Get rarity multiplier
         float rarityMultiplier = GetRarityMultiplier(itemId);
