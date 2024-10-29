@@ -169,17 +169,18 @@ public:
         // Calculate skill multiplier
         float skillMultiplier;
         if (IsFishingItem(itemId)) {
-            // Base multiplier of 2.5 with 0.4% increase per skill point
-            skillMultiplier = 2.0f + (currentSkill * 0.005f);
-            skillMultiplier = std::min(skillMultiplier, 4.0f);
+            // Calculate skill difference from required skill
+            uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
+            skillMultiplier = 3.0f - (skillDifference * 0.01f);  // Starts at 3.0x, reduces by 1% per skill point over
+            skillMultiplier = std::max(skillMultiplier, 0.5f);   // Minimum 0.5x multiplier
         }
         else if (IsSkinningItem(itemId)) {
-            // New skinning calculation - similar to fishing but slightly lower multipliers
+            // Keep existing skinning calculation
             skillMultiplier = 1.5f + (currentSkill * 0.004f);
             skillMultiplier = std::min(skillMultiplier, 3.0f);
         }
         else {
-            // Original diminishing returns for mining/herbalism
+            // Keep existing mining/herbalism calculation
             uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
             skillMultiplier = 1.0f - (skillDifference * 0.02f);
             skillMultiplier = std::max(skillMultiplier, 0.1f);
