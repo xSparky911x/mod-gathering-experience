@@ -220,8 +220,8 @@ public:
         // Apply level scaling formula
         float levelMultiplier;
         if (IsFishingItem(itemId)) {
-            // For fishing, higher levels get more XP since they need more to level
-            levelMultiplier = 0.5f + (0.5f * static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL);
+            // For fishing, higher levels get significantly more XP since they need more to level
+            levelMultiplier = 1.0f + (2.0f * static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL);
             
             LOG_DEBUG("module.gathering", "Fishing XP Level Calculation - Level: {}, LevelMultiplier: {:.2f}", 
                 playerLevel, levelMultiplier);
