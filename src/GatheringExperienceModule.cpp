@@ -19,7 +19,7 @@ using namespace Acore::ChatCommands;
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
-const char* GATHERING_EXPERIENCE_VERSION = "1.0.0";
+const char* GATHERING_EXPERIENCE_VERSION = "1.0.1";
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
@@ -694,6 +694,162 @@ public:
         handler->SendSysMessage("    Fields: basexp, reqskill, profession, name");
         handler->SendSysMessage("  .gathering list [profession]");
         handler->SendSysMessage("  Valid professions: Mining, Herbalism, Skinning, Fishing");
+        return true;
+    }
+
+    static bool HandleGatheringZoneCommand(ChatHandler* handler, const char* args)
+    {
+        char* actionStr = strtok((char*)args, " ");
+        if (!actionStr)
+        {
+            handler->SendSysMessage("Usage:");
+            handler->SendSysMessage("  .gathering zone add <zoneId> <multiplier>");
+            handler->SendSysMessage("  .gathering zone remove <zoneId>");
+            handler->SendSysMessage("  .gathering zone modify <zoneId> <multiplier>");
+            handler->SendSysMessage("  .gathering zone list            - Lists current multipliers");
+            handler->SendSysMessage("  .gathering zone list zones      - Lists all available zones");
+            return true;
+        }
+
+        std::string action = actionStr;
+
+        if (action == "list")
+        {
+            char* subActionStr = strtok(nullptr, " ");
+            std::string subAction = subActionStr ? subActionStr : "multipliers";
+
+            if (subAction == "zones")
+            {
+                // List all zones
+                QueryResult result = WorldDatabase.Query(
+                    "SELECT area_id, area_name "
+                    "FROM acore_world.areas "
+                    "WHERE area_type = 3 "  // Type 3 is for zones
+                    "ORDER BY area_name");
+
+                if (!result)
+                {
+                    handler->SendSysMessage("No zones found.");
+                    return true;
+                }
+
+                handler->SendSysMessage("Available zones:");
+                handler->SendSysMessage("----------------------------------------");
+                do
+                {
+                    Field* fields = result->Fetch();
+                    uint32 zoneId = fields[0].Get<uint32>();
+                    std::string zoneName = fields[1].Get<std::string>();
+
+                    handler->PSendSysMessage("Zone: |cFF00FF00{}|r (ID: {})", 
+                        zoneName, zoneId);
+                } while (result->NextRow());
+                handler->SendSysMessage("----------------------------------------");
+            }
+            else // "multipliers" or no subaction
+            {
+                // Existing multipliers list code
+                QueryResult result = WorldDatabase.Query(
+                    "SELECT z.zone_id, z.multiplier, a.area_name "
+                    "FROM gathering_experience_zones z "
+                    "LEFT JOIN acore_world.areas a ON z.zone_id = a.area_id "
+                    "ORDER BY z.multiplier DESC");
+
+                if (!result)
+                {
+                    handler->SendSysMessage("No zone multipliers found.");
+                    return true;
+                }
+
+                handler->SendSysMessage("Current zone multipliers (sorted by multiplier):");
+                handler->SendSysMessage("----------------------------------------");
+                do
+                {
+                    Field* fields = result->Fetch();
+                    uint32 zoneId = fields[0].Get<uint32>();
+                    float multiplier = fields[1].Get<float>();
+                    std::string zoneName = fields[2].Get<std::string>();
+
+                    handler->PSendSysMessage("Zone: |cFF00FF00{}|r (ID: {})", 
+                        zoneName.empty() ? "Unknown" : zoneName, 
+                        zoneId);
+                    handler->PSendSysMessage("Multiplier: |cFF00FF00{:.2f}x|r", multiplier);
+                    handler->SendSysMessage("----------------------------------------");
+                } while (result->NextRow());
+            }
+
+            return true;
+        }
+
+        char* zoneIdStr = strtok(nullptr, " ");
+        if (!zoneIdStr)
+        {
+            handler->SendSysMessage("Zone ID required.");
+            return false;
+        }
+        uint32 zoneId = atoi(zoneIdStr);
+
+        if (action == "remove")
+        {
+            WorldDatabase.DirectExecute("DELETE FROM gathering_experience_zones WHERE zone_id = {}", zoneId);
+        }
+        else if (action == "add" || action == "modify")
+        {
+            char* multiplierStr = strtok(nullptr, " ");
+            if (!multiplierStr)
+            {
+                handler->SendSysMessage("Multiplier value required.");
+                return false;
+            }
+            float multiplier = atof(multiplierStr);
+
+            if (multiplier <= 0.0f)
+            {
+                handler->SendSysMessage("Multiplier must be greater than 0.");
+                return false;
+            }
+
+            if (action == "add")
+            {
+                WorldDatabase.DirectExecute("INSERT INTO gathering_experience_zones (zone_id, multiplier) VALUES ({}, {})", 
+                    zoneId, multiplier);
+            }
+            else // modify
+            {
+                // First check if zone exists
+                QueryResult result = WorldDatabase.Query("SELECT 1 FROM gathering_experience_zones WHERE zone_id = {}", zoneId);
+                if (!result)
+                {
+                    handler->PSendSysMessage("Zone ID {} not found in multipliers database.", zoneId);
+                    return false;
+                }
+
+                WorldDatabase.DirectExecute("UPDATE gathering_experience_zones SET multiplier = {} WHERE zone_id = {}", 
+                    multiplier, zoneId);
+            }
+        }
+        else
+        {
+            handler->SendSysMessage("Invalid action. Use: add, remove, modify, or list");
+            return false;
+        }
+
+        // Reload data immediately after database change
+        if (!GatheringExperienceModule::instance)
+        {
+            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
+            return false;
+        }
+
+        GatheringExperienceModule::instance->LoadDataFromDB();
+        
+        if (action == "add")
+            handler->PSendSysMessage("Added multiplier {:.2f} for zone {} and reloaded data.", multiplier, zoneId);
+        else if (action == "modify")
+            handler->PSendSysMessage("Modified multiplier to {:.2f} for zone {} and reloaded data.", multiplier, zoneId);
+        else if (action == "remove")
+            handler->PSendSysMessage("Removed multiplier for zone {} and reloaded data.", zoneId);
+
         return true;
     }
 };
