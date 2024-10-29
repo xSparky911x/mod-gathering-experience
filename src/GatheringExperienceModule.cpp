@@ -567,20 +567,18 @@ public:
         }
 
         query += Acore::StringFormat(" WHERE item_id = {}", itemId);
-        WorldDatabase.Execute(query);
+        WorldDatabase.DirectExecute(query);
         
         // Force reload of data after modification
-        if (GatheringExperienceModule::instance)
+        if (!GatheringExperienceModule::instance)
         {
-            GatheringExperienceModule::instance->LoadDataFromDB();
-            handler->PSendSysMessage("Modified gathering item {} in database and reloaded data.", itemId);
+            handler->PSendSysMessage("Failed to reload data after modifying item {}.", itemId);
+            return false;
         }
-        else
-        {
-            handler->PSendSysMessage("Modified gathering item {} in database, but failed to reload data.", itemId);
-        }
+
+        GatheringExperienceModule::instance->LoadDataFromDB();
         
-        // Show updated item details
+        // Show updated item details AFTER reload
         QueryResult result = WorldDatabase.Query(
             "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.name "
             "FROM gathering_experience ge "
