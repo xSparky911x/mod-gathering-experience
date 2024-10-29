@@ -169,10 +169,25 @@ public:
         // Calculate skill multiplier
         float skillMultiplier;
         if (IsFishingItem(itemId)) {
-            // Calculate skill difference from required skill
-            uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
-            skillMultiplier = 3.0f - (skillDifference * 0.01f);  // Starts at 3.0x, reduces by 1% per skill point over
+            // Define fishing skill tiers
+            uint32 effectiveRequiredSkill;
+            if (currentSkill <= 75)
+                effectiveRequiredSkill = 0;
+            else if (currentSkill <= 150)
+                effectiveRequiredSkill = 75;
+            else if (currentSkill <= 225)
+                effectiveRequiredSkill = 150;
+            else if (currentSkill <= 300)
+                effectiveRequiredSkill = 225;
+            else
+                effectiveRequiredSkill = 300;
+
+            uint32 skillDifference = (currentSkill > effectiveRequiredSkill) ? (currentSkill - effectiveRequiredSkill) : 0;
+            skillMultiplier = 3.0f - (skillDifference * 0.01f);  // Starts at 3.0x, reduces by 1% per skill point over tier
             skillMultiplier = std::max(skillMultiplier, 0.5f);   // Minimum 0.5x multiplier
+
+            LOG_DEBUG("module.gathering", "Fishing XP Calculation - Skill: {}, EffectiveRequired: {}, Difference: {}, Multiplier: {:.2f}", 
+                currentSkill, effectiveRequiredSkill, skillDifference, skillMultiplier);
         }
         else if (IsSkinningItem(itemId)) {
             // Keep existing skinning calculation
