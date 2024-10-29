@@ -19,7 +19,7 @@ using namespace Acore::ChatCommands;
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
-const char* GATHERING_EXPERIENCE_VERSION = "1.1";
+const char* GATHERING_EXPERIENCE_VERSION = "0.2";
 
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
