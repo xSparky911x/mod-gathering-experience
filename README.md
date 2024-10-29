@@ -41,11 +41,22 @@ All commands require GM level access:
   - Valid fields: basexp, reqskill, profession, name
   - For profession: Mining, Herbalism, Skinning, Fishing
   - For name: The name of the item to add in quotes
+- `.gathering zone <action> <zoneId> <multiplier>`: Manages zone multipliers
+  - Valid actions: add, modify, remove
+- `.gathering zone list`: Lists current zone multipliers
+- `.gathering zone list zones`: Lists all available zones
 
 Example commands:
 - `.gathering add 2447 360 1 Herbalism "Peacebloom"`
 - `.gathering remove 2447`
 - `.gathering modify 2447 basexp 360`
+- `.gathering modify 2447 reqskill 1`
+- `.gathering modify 2447 profession Herbalism`
+- `.gathering modify 2447 name "Peacebloom"`
+- `.gathering list Herbalism`
+- `.gathering zone add 1 1.5`
+- `.gathering zone modify 1 2.0`
+- `.gathering zone remove 1`
 
 ## Credits
 
