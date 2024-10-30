@@ -176,6 +176,8 @@ public:
     // Function to calculate scaled experience based on player level and item base XP
     uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
     {
+        float skillMultiplier;
+
         if (IsFishingItem(itemId)) {
             // If player is above max level, no XP
             if (player->GetLevel() >= GATHERING_MAX_LEVEL)
@@ -186,7 +188,7 @@ public:
             float progressBonus = CalculateProgressBonus(currentSkill);
             
             // Base multiplier from skill
-            float skillMultiplier = skillTierMultiplier + progressBonus;
+            skillMultiplier = skillTierMultiplier + progressBonus;
             
             // Level scaling - stays at 1.0 until level 10, then scales up
             float levelMultiplier = (player->GetLevel() <= 10) ? 1.0f : (player->GetLevel() / 10.0f);
