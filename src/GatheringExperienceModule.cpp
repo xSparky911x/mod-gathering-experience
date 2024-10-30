@@ -211,35 +211,27 @@ public:
             skillMultiplier = std::min(skillMultiplier, 3.0f);
         }
         else {
-            // Keep existing mining/herbalism calculation
-            uint32 skillDifference = (currentSkill > requiredSkill) ? (currentSkill - requiredSkill) : 0;
-            skillMultiplier = 1.0f - (skillDifference * 0.02f);
-            skillMultiplier = std::max(skillMultiplier, 0.1f);
+            // Mining/herbalism calculation
+            if (currentSkill >= requiredSkill + 100) {
+                // Grey skill - no experience
+                return MIN_EXPERIENCE_GAIN;
+            }
+            else if (currentSkill >= requiredSkill + 50) {
+                // Green skill - standard multiplier
+                skillMultiplier = 1.0f;
+            }
+            else if (currentSkill >= requiredSkill + 25) {
+                // Yellow skill - increased multiplier
+                skillMultiplier = 1.5f;
+            }
+            else {
+                // Orange skill (at required) - maximum multiplier
+                skillMultiplier = 2.0f;
+            }
         }
 
-        // Apply level scaling formula
-        float levelMultiplier;
-        if (IsFishingItem(itemId)) {
-            // For fishing, use tiered multipliers based on level ranges
-            if (playerLevel < 20)
-                levelMultiplier = 0.5f;
-            else if (playerLevel < 40)
-                levelMultiplier = 1.0f;
-            else if (playerLevel < 60)
-                levelMultiplier = 1.5f;
-            else if (playerLevel < GATHERING_MAX_LEVEL)
-                levelMultiplier = 2.0f;
-            else
-                levelMultiplier = 0.0f;  // No XP at max level
-            
-            LOG_DEBUG("module.gathering", "Fishing XP Level Calculation - Level: {}, LevelMultiplier: {:.2f}", 
-                playerLevel, levelMultiplier);
-        }
-        else {
-            // Keep existing formula for other gathering professions
-            levelMultiplier = (requiredSkill <= 150) ? 1.0f : 
-                              (0.5f + (0.5f * (1.0f - static_cast<float>(playerLevel) / GATHERING_MAX_LEVEL)));
-        }
+        // New level multiplier calculation
+        float levelMultiplier = static_cast<float>(player->GetLevel()) / 10.0f;  // Level 10 = 1.0x, Level 60 = 6.0x
 
         // Get rarity multiplier
         float rarityMultiplier = GetRarityMultiplier(itemId);
