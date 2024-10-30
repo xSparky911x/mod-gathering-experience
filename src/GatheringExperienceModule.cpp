@@ -21,6 +21,14 @@ const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
 const char* GATHERING_EXPERIENCE_VERSION = "0.2";
 
+enum GatheringProfessions
+{
+    PROF_MINING     = 1,
+    PROF_HERBALISM  = 2,
+    PROF_SKINNING   = 3,
+    PROF_FISHING    = 4
+};
+
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
 private:
@@ -36,6 +44,17 @@ private:
     std::map<uint32, float> zoneMultipliers;
     bool enabled;
     bool dataLoaded;
+
+    // Constants for better readability and maintenance
+    static constexpr uint32 TIER_SIZE = 75;
+    static constexpr float PROGRESS_BONUS_RATE = 0.02f;
+    static constexpr float BASE_ZONE_MULTIPLIER = 1.0f;
+
+    // Skill tier thresholds
+    static constexpr uint32 TIER_1_MAX = 75;
+    static constexpr uint32 TIER_2_MAX = 150;
+    static constexpr uint32 TIER_3_MAX = 225;
+    static constexpr uint32 TIER_4_MAX = 300;
 
 public:
     static GatheringExperienceModule* instance;
@@ -157,53 +176,22 @@ public:
     // Function to calculate scaled experience based on player level and item base XP
     uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
     {
-        if (!enabled)
-            return 0;
-
-        uint32 playerLevel = player->GetLevel();
-
-        // No XP gain for characters at or above the max level
-        if (playerLevel >= GATHERING_MAX_LEVEL)
-            return 0;
-
-        // Calculate skill multiplier
         float skillMultiplier;
+
         if (IsFishingItem(itemId)) {
-            // Define fishing skill tiers
-            uint32 effectiveRequiredSkill;
-            if (currentSkill <= 75)
-                effectiveRequiredSkill = 0;
-            else if (currentSkill <= 150)
-                effectiveRequiredSkill = 75;
-            else if (currentSkill <= 225)
-                effectiveRequiredSkill = 150;
-            else if (currentSkill <= 300)
-                effectiveRequiredSkill = 225;
-            else
-                effectiveRequiredSkill = 300;
-
-            // Calculate base multiplier based on current tier
-            float baseMultiplier;
-            if (currentSkill <= 75)
-                baseMultiplier = 1.0f;
-            else if (currentSkill <= 150)
-                baseMultiplier = 2.0f;
-            else if (currentSkill <= 225)
-                baseMultiplier = 3.0f;
-            else if (currentSkill <= 300)
-                baseMultiplier = 4.0f;
-            else
-                baseMultiplier = 5.0f;
-
-            // Calculate skill difference within current tier
-            uint32 skillDifference = (currentSkill > effectiveRequiredSkill) ? (currentSkill - effectiveRequiredSkill) : 0;
+            float zoneMultiplier = GetFishingZoneMultiplier(player->GetZoneId());
             
-            // Add bonus based on progress within tier (up to 0.5 additional multiplier per tier)
-            float progressBonus = (skillDifference * 0.5f) / 75.0f;  // 75 is the size of each tier
-            skillMultiplier = baseMultiplier + progressBonus;
+            // Calculate tier multiplier
+            float skillTierMultiplier = GetFishingTierMultiplier(currentSkill);
 
-            LOG_DEBUG("module.gathering", "Fishing XP Calculation - Skill: {}, EffectiveRequired: {}, BaseMultiplier: {:.2f}, ProgressBonus: {:.2f}, FinalMultiplier: {:.2f}", 
-                currentSkill, effectiveRequiredSkill, baseMultiplier, progressBonus, skillMultiplier);
+            // Calculate progress bonus
+            float progressBonus = CalculateProgressBonus(currentSkill);
+
+            // Final multiplier combines zone difficulty and skill
+            skillMultiplier = (skillTierMultiplier + progressBonus) * zoneMultiplier;
+
+            // Log calculation breakdown
+            LogXPCalculation(baseXP, skillTierMultiplier, progressBonus, zoneMultiplier, player->GetLevel());
         }
         else if (IsSkinningItem(itemId)) {
             // Keep existing skinning calculation
@@ -229,30 +217,9 @@ public:
             }
         }
 
-        // New level multiplier calculation
-        float levelMultiplier = static_cast<float>(player->GetLevel()) / 10.0f;  // Level 10 = 1.0x, Level 60 = 6.0x
-
-        // Get rarity multiplier
-        float rarityMultiplier = GetRarityMultiplier(itemId);
-
-        // Apply zone-based multiplier for fishing
-        float zoneMultiplier = IsFishingItem(itemId) ? GetFishingZoneMultiplier(player->GetZoneId()) : 1.0f;
-
-        // Calculate final XP with scaling and diminishing returns
-        uint32 scaledXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier * zoneMultiplier);
-
-        // Higher minimum XP for fishing (scales with skill level)
-        uint32 minXP = IsFishingItem(itemId) ? 
-            std::max(50u, static_cast<uint32>(50 * (1.0f + currentSkill * 0.002f))) : 
-            MIN_EXPERIENCE_GAIN;
-        
-        // Apply minimum and maximum XP constraints
-        uint32 finalXP = std::clamp(scaledXP, minXP, MAX_EXPERIENCE_GAIN);
-
-        LOG_DEBUG("server.loading", "CalculateExperience - ItemId: {}, BaseXP: {}, CurrentSkill: {}, RequiredSkill: {}, SkillMultiplier: {:.2f}, LevelMultiplier: {:.2f}, RarityMultiplier: {:.2f}, ZoneMultiplier: {:.2f}, ScaledXP: {}, FinalXP: {}", 
-                itemId, baseXP, currentSkill, requiredSkill, skillMultiplier, levelMultiplier, rarityMultiplier, zoneMultiplier, scaledXP, finalXP);
-
-        return finalXP;
+        // Calculate final XP with level scaling
+        float levelMultiplier = static_cast<float>(player->GetLevel()) / 10.0f;
+        return static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
     }
 
     // Function to get base XP and required skill for different mining, herbalism items, and skinning items
@@ -387,8 +354,7 @@ public:
     // Modify the profession check functions to not log unless in debug mode
     bool IsFishingItem(uint32 itemId)
     {
-        auto it = gatheringItems.find(itemId);
-        return it != gatheringItems.end() && it->second.profession == 4;
+        return HasGatheringItem(itemId, PROF_FISHING);
     }
 
     bool IsMiningItem(uint32 itemId)
@@ -419,9 +385,54 @@ public:
     }
 
     // Add this new public method
-    bool HasGatheringItem(uint32 itemId) const
+    bool HasGatheringItem(uint32 itemId, uint8 profession) const
     {
-        return gatheringItems.count(itemId) > 0;
+        auto it = gatheringItems.find(itemId);
+        return it != gatheringItems.end() && it->second.profession == profession;
+    }
+
+private:
+    // Helper functions for cleaner code
+    float GetFishingTierMultiplier(uint32 currentSkill) const
+    {
+        // Multipliers centered around 1.0
+        if (currentSkill <= TIER_1_MAX)
+            return 1.0f;        // Beginner tier (starter areas)
+        else if (currentSkill <= TIER_2_MAX)
+            return 1.1f;        // Apprentice tier
+        else if (currentSkill <= TIER_3_MAX)
+            return 1.2f;        // Journeyman tier
+        else if (currentSkill <= TIER_4_MAX)
+            return 1.3f;        // Expert tier
+        else
+            return 1.4f;        // Artisan tier and beyond
+    }
+
+    float CalculateProgressBonus(uint32 currentSkill) const
+    {
+        // Very small progress bonus to avoid inflating XP too much
+        static constexpr float PROGRESS_BONUS_RATE = 0.001f;
+        
+        uint32 currentTierBase = (currentSkill / TIER_SIZE) * TIER_SIZE;
+        float progressInTier = (currentSkill - currentTierBase) / static_cast<float>(TIER_SIZE);
+        return progressInTier * PROGRESS_BONUS_RATE;
+    }
+
+    void LogXPCalculation(uint32 baseXP, float skillTierMult, float progressBonus, 
+                         float zoneMult, uint32 playerLevel) const
+    {
+        uint32 afterSkillMultiplier = static_cast<uint32>(baseXP * skillTierMult);
+        uint32 afterProgressBonus = static_cast<uint32>(afterSkillMultiplier * (1.0f + progressBonus));
+        uint32 afterZoneMultiplier = static_cast<uint32>(afterProgressBonus * zoneMult);
+        float levelMult = playerLevel / 10.0f;
+
+        LOG_DEBUG("module.gathering", "XP Calculation Breakdown:");
+        LOG_DEBUG("module.gathering", "- Initial XP: {}", baseXP);
+        LOG_DEBUG("module.gathering", "- After Skill Multiplier ({}x): {}", skillTierMult, afterSkillMultiplier);
+        LOG_DEBUG("module.gathering", "- After Progress Bonus ({}): {}", progressBonus, afterProgressBonus);
+        LOG_DEBUG("module.gathering", "- After Zone Multiplier ({}x): {}", zoneMult, afterZoneMultiplier);
+        LOG_DEBUG("module.gathering", "- After Level Multiplier ({}x): {}", levelMult, 
+                 static_cast<uint32>(afterZoneMultiplier * levelMult));
     }
 };
 
