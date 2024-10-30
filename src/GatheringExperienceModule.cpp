@@ -176,13 +176,13 @@ public:
     // Function to calculate scaled experience based on player level and item base XP
     uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
     {
-        float skillMultiplier;
+        if (player->GetLevel() >= GATHERING_MAX_LEVEL)
+            return 0;
+
+        float skillMultiplier;  // Declare this at the start for all paths
+        float levelMultiplier = std::max(1.0f, player->GetLevel() / 80.0f);
 
         if (IsFishingItem(itemId)) {
-            // If player is above max level, no XP
-            if (player->GetLevel() >= GATHERING_MAX_LEVEL)
-                return 0;
-
             float zoneMultiplier = GetFishingZoneMultiplier(player->GetZoneId());
             float skillTierMultiplier = GetFishingTierMultiplier(currentSkill);
             float progressBonus = CalculateProgressBonus(currentSkill);
@@ -190,44 +190,45 @@ public:
             // Base multiplier from skill
             skillMultiplier = skillTierMultiplier + progressBonus;
             
-            // Level scaling - stays at 1.0 until level 10, then scales up
-            float levelMultiplier = (player->GetLevel() <= 10) ? 1.0f : (player->GetLevel() / 10.0f);
-            
             // Calculate final XP
             uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * zoneMultiplier);
 
-            LOG_DEBUG("module.gathering", "XP Calculation: Base({}) * Skill({:.2f}) * Level({:.2f}) * Zone({:.2f}) = {}",
-                baseXP, skillMultiplier, levelMultiplier, zoneMultiplier, finalXP);
+            LOG_DEBUG("module.gathering", "Fishing XP Breakdown:");
+            LOG_DEBUG("module.gathering", "- Base XP: {}", baseXP);
+            LOG_DEBUG("module.gathering", "- Skill Tier Multiplier: {:.2f}", skillTierMultiplier);
+            LOG_DEBUG("module.gathering", "- Progress Bonus: {:.4f}", progressBonus);
+            LOG_DEBUG("module.gathering", "- Level Multiplier: {:.2f}", levelMultiplier);
+            LOG_DEBUG("module.gathering", "- Zone Multiplier: {:.2f}", zoneMultiplier);
+            LOG_DEBUG("module.gathering", "- Final XP: {}", finalXP);
 
             return std::min(finalXP, MAX_EXPERIENCE_GAIN);
         }
-        else if (IsSkinningItem(itemId)) {
-            // Keep existing skinning calculation
-            skillMultiplier = 1.5f + (currentSkill * 0.004f);
-            skillMultiplier = std::min(skillMultiplier, 3.0f);
-        }
         else {
-            // Mining/herbalism calculation
+            // Handle Mining, Herbalism, and Skinning
+            // Calculate skill multiplier based on skill level vs required skill
             if (currentSkill >= requiredSkill + 100) {
-                skillMultiplier = 0.5f;
+                skillMultiplier = 0.5f;  // Gray skill
             }
             else if (currentSkill >= requiredSkill + 50) {
-                // Green skill - standard multiplier
-                skillMultiplier = 1.0f;
+                skillMultiplier = 1.0f;  // Green skill
             }
             else if (currentSkill >= requiredSkill + 25) {
-                // Yellow skill - increased multiplier
-                skillMultiplier = 1.5f;
+                skillMultiplier = 1.5f;  // Yellow skill
             }
             else {
-                // Orange skill (at required) - maximum multiplier
-                skillMultiplier = 2.0f;
+                skillMultiplier = 2.0f;  // Orange skill
             }
-        }
 
-        // Calculate final XP with level scaling
-        float levelMultiplier = static_cast<float>(player->GetLevel()) / 10.0f;
-        return static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
+            // Apply rarity multiplier for special items
+            float rarityMultiplier = GetRarityMultiplier(itemId);
+
+            uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
+
+            LOG_DEBUG("module.gathering", "Gathering XP: Base({}) * Skill({:.2f}) * Level({:.2f}) * Rarity({:.2f}) = {}",
+                baseXP, skillMultiplier, levelMultiplier, rarityMultiplier, finalXP);
+
+            return std::min(finalXP, MAX_EXPERIENCE_GAIN);
+        }
     }
 
     // Function to get base XP and required skill for different mining, herbalism items, and skinning items
@@ -403,23 +404,23 @@ private:
     // Helper functions for cleaner code
     float GetFishingTierMultiplier(uint32 currentSkill) const
     {
-        // Multipliers centered around 1.0
+        // Significantly reduced multipliers to get closer to base XP
         if (currentSkill <= TIER_1_MAX)
-            return 1.0f;        // Beginner tier (starter areas)
+            return 0.8f;        // Beginner tier (starter areas)
         else if (currentSkill <= TIER_2_MAX)
-            return 1.1f;        // Apprentice tier
+            return 0.9f;        // Apprentice tier
         else if (currentSkill <= TIER_3_MAX)
-            return 1.2f;        // Journeyman tier
+            return 1.0f;        // Journeyman tier
         else if (currentSkill <= TIER_4_MAX)
-            return 1.3f;        // Expert tier
+            return 1.1f;        // Expert tier
         else
-            return 1.4f;        // Artisan tier and beyond
+            return 1.2f;        // Artisan tier and beyond
     }
 
     float CalculateProgressBonus(uint32 currentSkill) const
     {
-        // Very small progress bonus to avoid inflating XP too much
-        static constexpr float PROGRESS_BONUS_RATE = 0.001f;
+        // Further reduced progress bonus
+        static constexpr float PROGRESS_BONUS_RATE = 0.0001f;
         
         uint32 currentTierBase = (currentSkill / TIER_SIZE) * TIER_SIZE;
         float progressInTier = (currentSkill - currentTierBase) / static_cast<float>(TIER_SIZE);
