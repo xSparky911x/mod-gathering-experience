@@ -213,8 +213,7 @@ public:
         else {
             // Mining/herbalism calculation
             if (currentSkill >= requiredSkill + 100) {
-                // Grey skill - no experience
-                return MIN_EXPERIENCE_GAIN;
+                skillMultiplier = 0.5f;
             }
             else if (currentSkill >= requiredSkill + 50) {
                 // Green skill - standard multiplier
