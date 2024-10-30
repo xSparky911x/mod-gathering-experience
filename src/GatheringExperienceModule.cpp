@@ -176,22 +176,28 @@ public:
     // Function to calculate scaled experience based on player level and item base XP
     uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
     {
-        float skillMultiplier;
-
         if (IsFishingItem(itemId)) {
+            // If player is above max level, no XP
+            if (player->GetLevel() >= GATHERING_MAX_LEVEL)
+                return 0;
+
             float zoneMultiplier = GetFishingZoneMultiplier(player->GetZoneId());
-            
-            // Calculate tier multiplier
             float skillTierMultiplier = GetFishingTierMultiplier(currentSkill);
-
-            // Calculate progress bonus
             float progressBonus = CalculateProgressBonus(currentSkill);
+            
+            // Base multiplier from skill
+            float skillMultiplier = skillTierMultiplier + progressBonus;
+            
+            // Level scaling - stays at 1.0 until level 10, then scales up
+            float levelMultiplier = (player->GetLevel() <= 10) ? 1.0f : (player->GetLevel() / 10.0f);
+            
+            // Calculate final XP
+            uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * zoneMultiplier);
 
-            // Final multiplier combines zone difficulty and skill
-            skillMultiplier = (skillTierMultiplier + progressBonus) * zoneMultiplier;
+            LOG_DEBUG("module.gathering", "XP Calculation: Base({}) * Skill({:.2f}) * Level({:.2f}) * Zone({:.2f}) = {}",
+                baseXP, skillMultiplier, levelMultiplier, zoneMultiplier, finalXP);
 
-            // Log calculation breakdown
-            LogXPCalculation(baseXP, skillTierMultiplier, progressBonus, zoneMultiplier, player->GetLevel());
+            return std::min(finalXP, MAX_EXPERIENCE_GAIN);
         }
         else if (IsSkinningItem(itemId)) {
             // Keep existing skinning calculation
