@@ -26,11 +26,11 @@ The module can be configured through the `GatheringExperience.conf` file:
 
 ## Usage
 
-Once installed and enabled, the module works automatically. Players will receive XP when they gather items from supported professions.
+Once installed and enabled, the module works automatically. Players will receive XP when they gather items from supported professions. The basexp is stored in the database and can be adjusted on the fly. No need to recompile the server everytime. Once the appropriate command is used, the new value will be saved to the database and reloaded to memory making the changes live immediately
 
 ### Commands
 
-All commands require GM level access:
+All commands require GM level 2 access:
 
 - `.gathering version`: Displays the current version of the module
 - `.gathering reload`: Reloads all gathering data from the database
@@ -41,10 +41,17 @@ All commands require GM level access:
   - Valid fields: basexp, reqskill, profession, name
   - For profession: Mining, Herbalism, Skinning, Fishing
   - For name: The name of the item to add in quotes
+
 - `.gathering zone <action> <zoneId> <multiplier>`: Manages zone multipliers
   - Valid actions: add, modify, remove
 - `.gathering zone list`: Lists current zone multipliers
 - `.gathering zone list zones`: Lists all available zones
+- `.gathering currentzone`: Shows current zone information and its experience multiplier
+
+- `.gathering rarity add <itemId> <multiplier> <name>`: Adds a new rarity multiplier
+- `.gathering rarity remove <itemId>`: Removes a rarity multiplier
+- `.gathering rarity modify <itemId> <multiplier>`: Modifies an existing rarity multiplier
+- `.gathering rarity list`: Lists all rarity multipliers
 
 Example commands:
 - `.gathering add 2447 360 1 Herbalism "Peacebloom"`

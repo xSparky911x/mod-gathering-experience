@@ -469,6 +469,7 @@ public:
             { "zone",       HandleGatheringZoneCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "help",       HandleGatheringHelpCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "currentzone", HandleGatheringCurrentZoneCommand, SEC_GAMEMASTER,  Acore::ChatCommands::Console::No },
+            { "rarity",      HandleGatheringRarityCommand,    SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
         };
 
         static Acore::ChatCommands::ChatCommandTable commandTable =
@@ -918,6 +919,125 @@ public:
         handler->PSendSysMessage("Current Zone: {} (ID: {})", zoneName, zoneId);
         handler->PSendSysMessage("Gathering Experience Multiplier: {:.2f}x", multiplier);
 
+        return true;
+    }
+
+    static bool HandleGatheringRarityCommand(ChatHandler* handler, const char* args)
+    {
+        if (!args || !*args)
+        {
+            handler->SendSysMessage("Usage:");
+            handler->SendSysMessage("  .gathering rarity add <itemId> <multiplier> <name>");
+            handler->SendSysMessage("  .gathering rarity remove <itemId>");
+            handler->SendSysMessage("  .gathering rarity modify <itemId> <multiplier>");
+            handler->SendSysMessage("  .gathering rarity list");
+            return true;
+        }
+
+        char* actionStr = strtok((char*)args, " ");
+        if (!actionStr)
+        {
+            handler->SendSysMessage("Invalid command format.");
+            return false;
+        }
+
+        std::string action = actionStr;
+
+        if (action == "list")
+        {
+            QueryResult result = WorldDatabase.Query(
+                "SELECT ge.item_id, ger.multiplier, ge.name "
+                "FROM gathering_experience_rarity ger "
+                "JOIN gathering_experience ge ON ge.item_id = ger.item_id "
+                "ORDER BY ge.item_id");
+            
+            if (!result)
+            {
+                handler->SendSysMessage("No rarity multipliers found.");
+                return true;
+            }
+
+            handler->SendSysMessage("Current rarity multipliers:");
+            do
+            {
+                Field* fields = result->Fetch();
+                handler->PSendSysMessage("Item: {} (ID: {}), Multiplier: {:.2f}x",
+                    fields[2].Get<std::string>(),  // name
+                    fields[0].Get<uint32>(),       // item_id
+                    fields[1].Get<float>());       // multiplier
+            } while (result->NextRow());
+            return true;
+        }
+
+        char* itemIdStr = strtok(nullptr, " ");
+        if (!itemIdStr)
+        {
+            handler->SendSysMessage("Item ID required.");
+            return false;
+        }
+        uint32 itemId = atoi(itemIdStr);
+
+        if (action == "remove")
+        {
+            WorldDatabase.DirectExecute("DELETE FROM gathering_experience_rarity WHERE item_id = {}", itemId);
+            handler->PSendSysMessage("Removed rarity multiplier for item ID: {}", itemId);
+        }
+        else if (action == "add" || action == "modify")
+        {
+            char* multiplierStr = strtok(nullptr, " ");
+            if (!multiplierStr)
+            {
+                handler->SendSysMessage("Multiplier value required.");
+                return false;
+            }
+            float multiplier = atof(multiplierStr);
+
+            if (multiplier <= 0.0f)
+            {
+                handler->SendSysMessage("Multiplier must be greater than 0.");
+                return false;
+            }
+
+            if (action == "add")
+            {
+                char* nameStr = strtok(nullptr, "\n");  // Get rest of string as name
+                if (!nameStr)
+                {
+                    handler->SendSysMessage("Name required for add command.");
+                    return false;
+                }
+
+                WorldDatabase.DirectExecute(
+                    "REPLACE INTO gathering_experience_rarity (item_id, multiplier, name) VALUES ({}, {}, '{}')", 
+                    itemId, multiplier, nameStr);
+                handler->PSendSysMessage("Added multiplier {:.2f}x for item: {} (ID: {})", 
+                    multiplier, nameStr, itemId);
+            }
+            else // modify
+            {
+                WorldDatabase.DirectExecute(
+                    "UPDATE gathering_experience_rarity SET multiplier = {} WHERE item_id = {}", 
+                    multiplier, itemId);
+                
+                QueryResult result = WorldDatabase.Query(
+                    "SELECT name FROM gathering_experience WHERE item_id = {}", itemId);
+                std::string itemName = result ? result->Fetch()[0].Get<std::string>() : "Unknown";
+                
+                handler->PSendSysMessage("Modified multiplier to {:.2f}x for item: {} (ID: {})", 
+                    multiplier, itemName, itemId);
+            }
+        }
+        else
+        {
+            handler->SendSysMessage("Invalid action. Use: add, remove, modify, or list");
+            return false;
+        }
+
+        // Reload data
+        if (GatheringExperienceModule::instance)
+        {
+            GatheringExperienceModule::instance->LoadDataFromDB();
+        }
         return true;
     }
 };
