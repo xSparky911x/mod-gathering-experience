@@ -160,7 +160,7 @@ public:
 
         if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
         {
-            std::string message = "This server is running the |cff4CFF00Gathering Experience|r module v" + std::string(GATHERING_EXPERIENCE_VERSION) + " by Thaxtin.";
+            std::string message = "This server is running the |cff4CFF00Gathering Experience|r module v" + std::string(GATHERING_EXPERIENCE_VERSION) + " by xSparky911x and Thaxtin.";
             ChatHandler(player->GetSession()).SendSysMessage(message.c_str());
         }
     }

@@ -67,7 +67,7 @@ Example commands:
 
 ## Credits
 
-This module was created by Thaxtin for AzerothCore.
+This module was created by xSparky911x and Thaxtin for AzerothCore.
 
 ## License
 
