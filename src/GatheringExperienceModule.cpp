@@ -219,6 +219,8 @@ public:
 
             LOG_INFO("module.gathering", "Gathering XP Calculation:");
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
+            LOG_INFO("module.gathering", "- Current Skill: {}", currentSkill);
+            LOG_INFO("module.gathering", "- Required Skill: {}", requiredSkill);
             LOG_INFO("module.gathering", "- Skill Multiplier: {:.2f}", skillMultiplier);
             LOG_INFO("module.gathering", "- Level Multiplier: {:.2f}", levelMultiplier);
             LOG_INFO("module.gathering", "- Rarity Multiplier: {:.2f}", rarityMultiplier);
