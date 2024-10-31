@@ -1,19 +1,11 @@
 #include "ScriptMgr.h"
 #include "Player.h"
-#include "Creature.h"
-#include "ObjectMgr.h"
-#include "GameEventMgr.h"
-#include "SkillDiscovery.h"
 #include "Config.h"
 #include "Chat.h"
-#include <iostream> // Include for logging
 #include "ChatCommand.h"
-#include "StringFormat.h"
 #include "DatabaseEnv.h"
 #include "Log.h"
-#include <thread> // Include for sleep
-
-using namespace Acore::ChatCommands;
+#include "StringFormat.h"
 
 // Define the maximum level for gathering scaling
 const uint32 GATHERING_MAX_LEVEL = 80;
@@ -179,7 +171,7 @@ public:
         if (player->GetLevel() >= GATHERING_MAX_LEVEL)
             return 0;
 
-        float skillMultiplier;  // Declare this at the start for all paths
+        float skillMultiplier;
         float levelMultiplier = std::max(1.0f, player->GetLevel() / 80.0f);
 
         if (IsFishingItem(itemId)) {
@@ -193,30 +185,31 @@ public:
             // Calculate final XP
             uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * zoneMultiplier);
 
-            LOG_DEBUG("module.gathering", "Fishing XP Breakdown:");
-            LOG_DEBUG("module.gathering", "- Base XP: {}", baseXP);
-            LOG_DEBUG("module.gathering", "- Skill Tier Multiplier: {:.2f}", skillTierMultiplier);
-            LOG_DEBUG("module.gathering", "- Progress Bonus: {:.4f}", progressBonus);
-            LOG_DEBUG("module.gathering", "- Level Multiplier: {:.2f}", levelMultiplier);
-            LOG_DEBUG("module.gathering", "- Zone Multiplier: {:.2f}", zoneMultiplier);
-            LOG_DEBUG("module.gathering", "- Final XP: {}", finalXP);
+            LOG_INFO("module.gathering", "Fishing XP Calculation:");
+            LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
+            LOG_INFO("module.gathering", "- Skill Tier Multiplier: {:.2f}", skillTierMultiplier);
+            LOG_INFO("module.gathering", "- Progress Bonus: {:.4f}", progressBonus);
+            LOG_INFO("module.gathering", "- Level Multiplier: {:.2f}", levelMultiplier);
+            LOG_INFO("module.gathering", "- Zone Multiplier: {:.2f}", zoneMultiplier);
+            LOG_INFO("module.gathering", "- Total Skill Multiplier: {:.2f}", skillMultiplier);
+            LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
 
             return std::min(finalXP, MAX_EXPERIENCE_GAIN);
         }
         else {
             // Handle Mining, Herbalism, and Skinning
-            // Calculate skill multiplier based on skill level vs required skill
+            // Adjusted multipliers to match fishing progression
             if (currentSkill >= requiredSkill + 100) {
-                skillMultiplier = 0.5f;  // Gray skill
+                skillMultiplier = 0.5f;  // Gray skill - reduced XP
             }
             else if (currentSkill >= requiredSkill + 50) {
-                skillMultiplier = 1.0f;  // Green skill
+                skillMultiplier = 0.75f;  // Green skill
             }
             else if (currentSkill >= requiredSkill + 25) {
-                skillMultiplier = 1.5f;  // Yellow skill
+                skillMultiplier = 1.0f;   // Yellow skill - base XP
             }
             else {
-                skillMultiplier = 2.0f;  // Orange skill
+                skillMultiplier = 1.1f;   // Orange skill - slight bonus
             }
 
             // Apply rarity multiplier for special items
@@ -224,8 +217,12 @@ public:
 
             uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
 
-            LOG_DEBUG("module.gathering", "Gathering XP: Base({}) * Skill({:.2f}) * Level({:.2f}) * Rarity({:.2f}) = {}",
-                baseXP, skillMultiplier, levelMultiplier, rarityMultiplier, finalXP);
+            LOG_INFO("module.gathering", "Gathering XP Calculation:");
+            LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
+            LOG_INFO("module.gathering", "- Skill Multiplier: {:.2f}", skillMultiplier);
+            LOG_INFO("module.gathering", "- Level Multiplier: {:.2f}", levelMultiplier);
+            LOG_INFO("module.gathering", "- Rarity Multiplier: {:.2f}", rarityMultiplier);
+            LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
 
             return std::min(finalXP, MAX_EXPERIENCE_GAIN);
         }
@@ -404,17 +401,21 @@ private:
     // Helper functions for cleaner code
     float GetFishingTierMultiplier(uint32 currentSkill) const
     {
-        // Significantly reduced multipliers to get closer to base XP
+        float tierMultiplier;
+        // Adjusted multipliers to give ~400 XP with zone multiplier of 1.0
         if (currentSkill <= TIER_1_MAX)
-            return 0.8f;        // Beginner tier (starter areas)
+            tierMultiplier = 1.0f;        // Beginner tier (starter areas) - 400 * 1.0 * 1.0 = 400 XP
         else if (currentSkill <= TIER_2_MAX)
-            return 0.9f;        // Apprentice tier
+            tierMultiplier = 1.1f;        // Apprentice tier
         else if (currentSkill <= TIER_3_MAX)
-            return 1.0f;        // Journeyman tier
+            tierMultiplier = 1.2f;        // Journeyman tier
         else if (currentSkill <= TIER_4_MAX)
-            return 1.1f;        // Expert tier
+            tierMultiplier = 1.3f;        // Expert tier
         else
-            return 1.2f;        // Artisan tier and beyond
+            tierMultiplier = 1.4f;        // Artisan tier and beyond
+
+        LOG_INFO("module.gathering", "Fishing Tier Multiplier for skill {}: {:.2f}", currentSkill, tierMultiplier);
+        return tierMultiplier;
     }
 
     float CalculateProgressBonus(uint32 currentSkill) const
@@ -453,21 +454,21 @@ class GatheringExperienceCommandScript : public CommandScript
 public:
     GatheringExperienceCommandScript() : CommandScript("GatheringExperienceCommandScript") { }
 
-    ChatCommandTable GetCommands() const override
+    Acore::ChatCommands::ChatCommandTable GetCommands() const override
     {
-        static ChatCommandTable gatheringCommandTable =
+        static Acore::ChatCommands::ChatCommandTable gatheringCommandTable =
         {
-            { "version",     HandleGatheringVersionCommand,   SEC_GAMEMASTER,  Console::Yes },
-            { "reload",      HandleGatheringReloadCommand,    SEC_GAMEMASTER,  Console::Yes },
-            { "add",        HandleGatheringAddCommand,       SEC_GAMEMASTER,  Console::Yes },
-            { "remove",     HandleGatheringRemoveCommand,    SEC_GAMEMASTER,  Console::Yes },
-            { "modify",     HandleGatheringModifyCommand,    SEC_GAMEMASTER,  Console::Yes },
-            { "list",       HandleGatheringListCommand,      SEC_GAMEMASTER,  Console::Yes },
-            { "zone",       HandleGatheringZoneCommand,     SEC_GAMEMASTER,  Console::Yes },
-            { "help",       HandleGatheringHelpCommand,     SEC_GAMEMASTER,  Console::Yes }
+            { "version",    HandleGatheringVersionCommand,   SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "reload",     HandleGatheringReloadCommand,    SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "add",        HandleGatheringAddCommand,       SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "remove",     HandleGatheringRemoveCommand,    SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "modify",     HandleGatheringModifyCommand,    SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "list",       HandleGatheringListCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "zone",       HandleGatheringZoneCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "help",       HandleGatheringHelpCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes }
         };
 
-        static ChatCommandTable commandTable =
+        static Acore::ChatCommands::ChatCommandTable commandTable =
         {
             { "gathering", gatheringCommandTable }
         };
