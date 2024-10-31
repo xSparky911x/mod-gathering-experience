@@ -467,7 +467,8 @@ public:
             { "modify",     HandleGatheringModifyCommand,    SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "list",       HandleGatheringListCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "zone",       HandleGatheringZoneCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
-            { "help",       HandleGatheringHelpCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes }
+            { "help",       HandleGatheringHelpCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "currentzone", HandleGatheringCurrentZoneCommand, SEC_GAMEMASTER,  Acore::ChatCommands::Console::No },
         };
 
         static Acore::ChatCommands::ChatCommandTable commandTable =
@@ -763,6 +764,7 @@ public:
         handler->SendSysMessage("  .gathering zone remove <zoneId>");
         handler->SendSysMessage("  .gathering zone modify <zoneId> <multiplier>");
         handler->SendSysMessage("  .gathering zone list");
+        handler->SendSysMessage("  .gathering currentzone - Shows current zone info and multiplier");
         handler->SendSysMessage("  Valid professions: Mining, Herbalism, Skinning, Fishing");
         return true;
     }
@@ -880,6 +882,35 @@ public:
         {
             GatheringExperienceModule::instance->LoadDataFromDB();
         }
+        return true;
+    }
+
+    static bool HandleGatheringCurrentZoneCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        Player* player = handler->GetPlayer();
+        if (!player)
+        {
+            handler->SendSysMessage("This command can only be used in-game.");
+            return true;
+        }
+
+        uint32 zoneId = player->GetZoneId();
+        std::string zoneName = player->GetZoneId() ? player->GetZoneText() : "Unknown";
+        float multiplier = 1.0f;  // Default multiplier
+
+        // Get the zone multiplier if it exists
+        QueryResult result = WorldDatabase.Query(
+            "SELECT multiplier FROM gathering_experience_zones WHERE zone_id = {}", 
+            zoneId);
+
+        if (result)
+        {
+            multiplier = result->Fetch()[0].Get<float>();
+        }
+
+        handler->PSendSysMessage("Current Zone: {} (ID: {})", zoneName, zoneId);
+        handler->PSendSysMessage("Gathering Experience Multiplier: {:.2f}x", multiplier);
+
         return true;
     }
 };
