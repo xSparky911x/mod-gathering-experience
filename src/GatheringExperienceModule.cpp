@@ -895,7 +895,14 @@ public:
         }
 
         uint32 zoneId = player->GetZoneId();
-        std::string zoneName = player->GetZoneId() ? player->GetZoneText() : "Unknown";
+        std::string zoneName = "Unknown";
+
+        // Get zone name from AreaTableEntry
+        if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(zoneId))
+        {
+            zoneName = area->area_name[0];
+        }
+
         float multiplier = 1.0f;  // Default multiplier
 
         // Get the zone multiplier if it exists
