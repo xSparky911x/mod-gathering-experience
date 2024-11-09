@@ -1,9 +1,3 @@
--- Drop tables in correct order (reverse dependency order)
-DROP TABLE IF EXISTS `gathering_experience`;
-DROP TABLE IF EXISTS `gathering_experience_rarity`;
-DROP TABLE IF EXISTS `gathering_experience_zones`;
-DROP TABLE IF EXISTS `gathering_experience_professions`;
-
 -- Create profession table first (since it's referenced by gathering_experience)
 CREATE TABLE IF NOT EXISTS `gathering_experience_professions` (
     `profession_id` TINYINT UNSIGNED NOT NULL,
