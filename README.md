@@ -6,6 +6,7 @@ The Gathering Experience Module is a custom addition for AzerothCore that enhanc
 ## Features
 
 - Grants XP for gathering items from Mining, Herbalism, Skinning, and Fishing.
+- Individual profession toggles that persist through server restarts
 - Scales XP rewards based on player level, current skill level, and item rarity.
 - Implements diminishing returns to balance XP gains.
 - Provides extra XP bonuses for rare and super rare items.
@@ -23,6 +24,10 @@ The module can be configured through the `GatheringExperience.conf` file:
 
 - `GatheringExperience.Enable`: Enable or disable the module (default: enabled).
 - `GatheringExperience.Announce`: Toggle login announcement (default: enabled).
+- `GatheringExperience.Mining.Enable`: Enable or disable Mining XP (default: enabled).
+- `GatheringExperience.Herbalism.Enable`: Enable or disable Herbalism XP (default: enabled).
+- `GatheringExperience.Skinning.Enable`: Enable or disable Skinning XP (default: enabled).
+- `GatheringExperience.Fishing.Enable`: Enable or disable Fishing XP (default: enabled).
 
 ## Usage
 
@@ -34,6 +39,8 @@ All commands require GM level 2 access:
 
 - `.gathering version`: Displays the current version of the module
 - `.gathering reload`: Reloads all gathering data from the database
+- `.gathering status`: Shows the current enabled/disabled state of each profession
+- `.gathering toggle <profession>`: Toggles XP gains for the specified profession (mining, herbalism, skinning, fishing)
 - `.gathering list [profession]`: Lists all gathering items for a specific profession
 - `.gathering add <itemId> <baseXP> <reqSkill> <profession> <name>`: Adds a new gathering item
 - `.gathering remove <itemId>`: Removes a gathering item
@@ -54,6 +61,11 @@ All commands require GM level 2 access:
 - `.gathering rarity list`: Lists all rarity multipliers
 
 Example commands:
+- `.gathering toggle mining`: Toggles Mining XP on/off
+- `.gathering toggle herbalism`: Toggles Herbalism XP on/off
+- `.gathering toggle skinning`: Toggles Skinning XP on/off
+- `.gathering toggle fishing`: Toggles Fishing XP on/off
+- `.gathering status`: Shows current state of all professions
 - `.gathering add 2447 360 1 Herbalism "Peacebloom"`
 - `.gathering remove 2447`
 - `.gathering modify 2447 basexp 360`
