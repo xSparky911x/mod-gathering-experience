@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2024+ Thaxtin, released under GNU AGPL v3 license: https://github.com/xSparky911x/mod-gathering-experience/blob/master/LICENSE
+# Copyright (C) 2024+ xSparky911x, Thaxtin, released under GNU AGPL v3 license: https://github.com/xSparky911x/mod-gathering-experience/blob/master/LICENSE
 #
 
 [worldserver]
@@ -18,7 +18,35 @@
 #        Default:     1 - Enabled
 #                     0 - Disabled
 #
+#    GatheringExperience.Mining.Enable
+#        Description: Enable to skip the Mining profession
+#        Default:     1 - Enabled
+#                     0 - Disabled
+#
+#    GatheringExperience.Herbalism.Enable
+#        Description: Enable to skip the Herbalism profession
+#        Default:     1 - Enabled
+#                     0 - Disabled
+#
+#    GatheringExperience.Skinning.Enable
+#        Description: Enable to skip the Skinning profession
+#        Default:     1 - Enabled
+#                     0 - Disabled
+#
+#    GatheringExperience.Fishing.Enable
+#        Description: Enable to skip the Fishing profession
+#        Default:     1 - Enabled
+#                     0 - Disabled
+#
 
 GatheringExperience.Enable = 1
 
 GatheringExperience.Announce = 1
+
+GatheringExperience.Mining.Enable = 1
+
+GatheringExperience.Herbalism.Enable = 1
+
+GatheringExperience.Skinning.Enable = 1
+
+GatheringExperience.Fishing.Enable = 1

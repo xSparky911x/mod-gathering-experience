@@ -11,7 +11,7 @@
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
-const char* GATHERING_EXPERIENCE_VERSION = "0.2";
+const char* GATHERING_EXPERIENCE_VERSION = "0.3";
 
 enum GatheringProfessions
 {
@@ -36,6 +36,11 @@ private:
     std::map<uint32, float> zoneMultipliers;
     bool enabled;
     bool dataLoaded;
+
+    bool miningEnabled;
+    bool herbalismEnabled;
+    bool skinningEnabled;
+    bool fishingEnabled;
 
     // Constants for better readability and maintenance
     static constexpr uint32 TIER_SIZE = 75;
@@ -66,7 +71,7 @@ public:
         LoadDataFromDB();
     }
 
-    void OnBeforeConfigLoad(bool /*reload*/) override
+    void OnBeforeConfigLoad(bool reload) override
     {
         enabled = sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true);
         if (!enabled)
@@ -74,6 +79,15 @@ public:
             LOG_INFO("server.loading", "Gathering Experience Module is disabled by config.");
             return;
         }
+
+        // Load initial values from config
+        miningEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Mining.Enable", true);
+        herbalismEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Herbalism.Enable", true);
+        skinningEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Skinning.Enable", true);
+        fishingEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Fishing.Enable", true);
+
+        // Override with DB values if they exist
+        LoadSettingsFromDB();
 
         LOG_INFO("server.loading", "Gathering Experience Module configuration loaded.");
     }
@@ -282,41 +296,31 @@ public:
 
         uint32 itemId = item->GetEntry();
         
-        // Add debug logging
-        LOG_INFO("server.loading", "OnLootItem triggered for item {} - Checking if it's in gathering items...", itemId);
-        LOG_INFO("server.loading", "Current number of gathering items in memory: {}", gatheringItems.size());
-        
         auto [baseXP, requiredSkill] = GetGatheringBaseXPAndRequiredSkill(itemId);
         
         if (baseXP == 0)
-        {
-            LOG_INFO("server.loading", "Item {} not recognized as a gathering item", itemId);
             return;
-        }
-
-        // If we get here, the item was found in memory
-        LOG_INFO("server.loading", "Found item {} in memory with baseXP {}", itemId, baseXP);
 
         uint32 currentSkill = 0;
         SkillType skillType = SKILL_NONE;
 
-        // Check for each profession
-        if (IsFishingItem(itemId) && player->HasSkill(SKILL_FISHING))
+        // Check each profession with its enabled state
+        if (fishingEnabled && IsFishingItem(itemId) && player->HasSkill(SKILL_FISHING))
         {
             currentSkill = player->GetSkillValue(SKILL_FISHING);
             skillType = SKILL_FISHING;
         }
-        else if (IsMiningItem(itemId) && player->HasSkill(SKILL_MINING))
+        else if (miningEnabled && IsMiningItem(itemId) && player->HasSkill(SKILL_MINING))
         {
             currentSkill = player->GetSkillValue(SKILL_MINING);
             skillType = SKILL_MINING;
         }
-        else if (IsHerbalismItem(itemId) && player->HasSkill(SKILL_HERBALISM))
+        else if (herbalismEnabled && IsHerbalismItem(itemId) && player->HasSkill(SKILL_HERBALISM))
         {
             currentSkill = player->GetSkillValue(SKILL_HERBALISM);
             skillType = SKILL_HERBALISM;
         }
-        else if (IsSkinningItem(itemId) && player->HasSkill(SKILL_SKINNING))
+        else if (skinningEnabled && IsSkinningItem(itemId) && player->HasSkill(SKILL_SKINNING))
         {
             currentSkill = player->GetSkillValue(SKILL_SKINNING);
             skillType = SKILL_SKINNING;
@@ -399,6 +403,39 @@ public:
         return it != gatheringItems.end() && it->second.profession == profession;
     }
 
+    bool ToggleMining()
+    {
+        miningEnabled = !miningEnabled;
+        SaveSettingToDB("mining", miningEnabled);
+        return miningEnabled;
+    }
+
+    bool ToggleHerbalism()
+    {
+        herbalismEnabled = !herbalismEnabled;
+        SaveSettingToDB("herbalism", herbalismEnabled);
+        return herbalismEnabled;
+    }
+
+    bool ToggleSkinning()
+    {
+        skinningEnabled = !skinningEnabled;
+        SaveSettingToDB("skinning", skinningEnabled);
+        return skinningEnabled;
+    }
+
+    bool ToggleFishing()
+    {
+        fishingEnabled = !fishingEnabled;
+        SaveSettingToDB("fishing", fishingEnabled);
+        return fishingEnabled;
+    }
+
+    bool IsMiningEnabled() const { return miningEnabled; }
+    bool IsHerbalismEnabled() const { return herbalismEnabled; }
+    bool IsSkinningEnabled() const { return skinningEnabled; }
+    bool IsFishingEnabled() const { return fishingEnabled; }
+
 private:
     // Helper functions for cleaner code
     float GetFishingTierMultiplier(uint32 currentSkill) const
@@ -446,6 +483,49 @@ private:
         LOG_DEBUG("module.gathering", "- After Level Multiplier ({}x): {}", levelMult, 
                  static_cast<uint32>(afterZoneMultiplier * levelMult));
     }
+
+    void LoadProfessionStates()
+    {
+        miningEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Mining.Enable", true);
+        herbalismEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Herbalism.Enable", true);
+        skinningEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Skinning.Enable", true);
+        fishingEnabled = sConfigMgr->GetOption<bool>("GatheringExperience.Fishing.Enable", true);
+    }
+
+    void LoadSettingsFromDB()
+    {
+        QueryResult result = WorldDatabase.Query("SELECT profession, enabled FROM gathering_experience_settings");
+        if (!result)
+        {
+            LOG_INFO("module", "Gathering Experience: No settings found in DB, using defaults");
+            return;
+        }
+
+        do
+        {
+            Field* fields = result->Fetch();
+            std::string profession = fields[0].Get<std::string>();
+            bool isEnabled = fields[1].Get<bool>();
+
+            if (profession == "mining")
+                miningEnabled = isEnabled;
+            else if (profession == "herbalism")
+                herbalismEnabled = isEnabled;
+            else if (profession == "skinning")
+                skinningEnabled = isEnabled;
+            else if (profession == "fishing")
+                fishingEnabled = isEnabled;
+
+        } while (result->NextRow());
+
+        LOG_INFO("module", "Gathering Experience: Settings loaded from database");
+    }
+
+    void SaveSettingToDB(std::string const& profession, bool enabled)
+    {
+        WorldDatabase.Execute("UPDATE gathering_experience_settings SET enabled = {} WHERE profession = '{}'",
+            enabled ? 1 : 0, profession);
+    }
 };
 
 // Initialize the static member
@@ -470,6 +550,8 @@ public:
             { "help",       HandleGatheringHelpCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "currentzone", HandleGatheringCurrentZoneCommand, SEC_GAMEMASTER,  Acore::ChatCommands::Console::No },
             { "rarity",      HandleGatheringRarityCommand,    SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "toggle",     HandleGatheringToggleProfessionCommand, SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
+            { "status",     HandleGatheringStatusCommand,           SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
         };
 
         static Acore::ChatCommands::ChatCommandTable commandTable =
@@ -1038,6 +1120,71 @@ public:
         {
             GatheringExperienceModule::instance->LoadDataFromDB();
         }
+        return true;
+    }
+
+    static bool HandleGatheringToggleProfessionCommand(ChatHandler* handler, const char* args)
+    {
+        if (!args)
+        {
+            handler->SendSysMessage("Usage: .gathering toggle <profession>");
+            handler->SendSysMessage("Valid professions: mining, herbalism, skinning, fishing");
+            return true;
+        }
+
+        std::string profession = args;
+        std::transform(profession.begin(), profession.end(), profession.begin(), ::tolower);
+
+        if (!GatheringExperienceModule::instance)
+        {
+            handler->PSendSysMessage("Module instance not found.");
+            return false;
+        }
+
+        bool newState;
+        if (profession == "mining")
+        {
+            newState = GatheringExperienceModule::instance->ToggleMining();
+            handler->PSendSysMessage("Mining experience is now {}.", newState ? "enabled" : "disabled");
+        }
+        else if (profession == "herbalism")
+        {
+            newState = GatheringExperienceModule::instance->ToggleHerbalism();
+            handler->PSendSysMessage("Herbalism experience is now {}.", newState ? "enabled" : "disabled");
+        }
+        else if (profession == "skinning")
+        {
+            newState = GatheringExperienceModule::instance->ToggleSkinning();
+            handler->PSendSysMessage("Skinning experience is now {}.", newState ? "enabled" : "disabled");
+        }
+        else if (profession == "fishing")
+        {
+            newState = GatheringExperienceModule::instance->ToggleFishing();
+            handler->PSendSysMessage("Fishing experience is now {}.", newState ? "enabled" : "disabled");
+        }
+        else
+        {
+            handler->SendSysMessage("Invalid profession specified.");
+            handler->SendSysMessage("Valid professions: mining, herbalism, skinning, fishing");
+            return false;
+        }
+
+        return true;
+    }
+
+    static bool HandleGatheringStatusCommand(ChatHandler* handler, const char* /*args*/)
+    {
+        if (!GatheringExperienceModule::instance)
+        {
+            handler->PSendSysMessage("Module instance not found.");
+            return false;
+        }
+
+        handler->SendSysMessage("Gathering Experience Settings:");
+        handler->PSendSysMessage("Mining: {}", GatheringExperienceModule::instance->IsMiningEnabled() ? "Enabled" : "Disabled");
+        handler->PSendSysMessage("Herbalism: {}", GatheringExperienceModule::instance->IsHerbalismEnabled() ? "Enabled" : "Disabled");
+        handler->PSendSysMessage("Skinning: {}", GatheringExperienceModule::instance->IsSkinningEnabled() ? "Enabled" : "Disabled");
+        handler->PSendSysMessage("Fishing: {}", GatheringExperienceModule::instance->IsFishingEnabled() ? "Enabled" : "Disabled");
         return true;
     }
 };
