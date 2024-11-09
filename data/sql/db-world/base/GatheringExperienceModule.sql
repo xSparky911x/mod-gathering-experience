@@ -34,14 +34,14 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_zones` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Insert professions first (since they're referenced)
-INSERT INTO `gathering_experience_professions` (profession_id, name, description) VALUES
+INSERT IGNORE INTO `gathering_experience_professions` (profession_id, name, description) VALUES
 (1, 'Mining', 'Gathering ore and minerals'),
 (2, 'Herbalism', 'Gathering herbs and plants'),
 (3, 'Skinning', 'Gathering leather and hides'),
 (4, 'Fishing', 'Catching fish and other aquatic items');
 
 -- Skinning Data
-INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
+INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
 (2934, 25, 1, 3, 'Ruined Leather Scraps'),
 (2318, 50, 1, 3, 'Light Leather'),
 (783, 150, 75, 3, 'Light Hide'),
@@ -82,7 +82,7 @@ INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession
 (15423, 525, 525, 3, 'Brilliant Chromatic Scale');
 
 -- Mining Data
-INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
+INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
 (2770, 50, 1, 1, 'Copper Ore'),
 (774, 50, 1, 1, 'Malachite'),
 (818, 75, 1, 1, 'Tigerseye'),
@@ -127,7 +127,7 @@ INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession
 (37702, 325, 450, 1, 'Crystallized Fire');
 
 -- Herbalism Data
-INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
+INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
 (765, 360, 1, 2, 'Silverleaf'),
 (2447, 360, 1, 2, 'Peacebloom'),
 (2449, 540, 15, 2, 'Earthroot'),
@@ -173,7 +173,7 @@ INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession
 (36906, 7920, 435, 2, 'Icethorn');
 
 -- Fishing Data
-INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
+INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
 (6291, 25, 0, 4, 'Raw Brilliant Smallfish'),
 (6317, 100, 0, 4, 'Raw Loch Frenzy'),
 (6308, 150, 0, 4, 'Raw Bristle Whisker Catfish'),
@@ -211,7 +211,7 @@ INSERT INTO `gathering_experience` (item_id, base_xp, required_skill, profession
 (41814, 1450, 0, 4, 'Glassfin Minnow');
 
 -- Insert rarity multipliers
-INSERT INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
+INSERT IGNORE INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
 (13463, 1.5),  -- Dreamfoil
 (8836, 1.5),   -- Arthas' Tears
 (8838, 1.5),   -- Sungrass
@@ -234,7 +234,7 @@ INSERT INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
 (15423, 2.5);  -- Brilliant Chromatic Scale
 
 -- Insert zone multipliers
-INSERT INTO `gathering_experience_zones` (zone_id, multiplier, name) VALUES
+INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALUES
 (1, 1.0, 'Dun Morogh'),
 (12, 1.2, 'Elwynn Forest'),
 (14, 1.5, 'Durotar'),
