@@ -11,7 +11,7 @@
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
-const char* GATHERING_EXPERIENCE_VERSION = "0.4";
+const char* GATHERING_EXPERIENCE_VERSION = "0.5";
 
 enum GatheringProfessions
 {
@@ -71,7 +71,7 @@ public:
         LoadDataFromDB();
     }
 
-    void OnBeforeConfigLoad(bool reload) override
+    void OnBeforeConfigLoad([[maybe_unused]] bool reload) override
     {
         enabled = sConfigMgr->GetOption<bool>("GatheringExperience.Enable", true);
         if (!enabled)
@@ -185,62 +185,70 @@ public:
         if (player->GetLevel() >= GATHERING_MAX_LEVEL)
             return 0;
 
-        float skillMultiplier;
-        float levelMultiplier = std::max(1.0f, player->GetLevel() / 80.0f);
+        // Declare all multipliers at the start
+        float skillMultiplier = 1.0f;
+        float levelMultiplier = player->GetLevel() / 80.0f;
+        float rarityMultiplier = 1.0f;  // Default rarity multiplier
 
-        if (IsFishingItem(itemId)) {
-            float zoneMultiplier = GetFishingZoneMultiplier(player->GetZoneId());
-            float skillTierMultiplier = GetFishingTierMultiplier(currentSkill);
+        if (IsFishingItem(itemId))
+        {
+            float skillTierMult = GetFishingTierMultiplier(currentSkill);
             float progressBonus = CalculateProgressBonus(currentSkill);
-            
-            // Base multiplier from skill
-            skillMultiplier = skillTierMultiplier + progressBonus;
-            
-            // Calculate final XP
-            uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * zoneMultiplier);
+            float zoneMult = GetFishingZoneMultiplier(player->GetZoneId());
+
+            // Calculate base experience without rested bonus
+            uint32 normalXP = static_cast<uint32>(baseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult);
+
+            // Handle rested state properly
+            uint32 finalXP = normalXP;
+            if (player->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
+            {
+                uint32 restedXP = player->GetXPRestBonus(normalXP);
+                finalXP += restedXP;
+                
+                // Consume the rested XP
+                float currentRestBonus = player->GetRestBonus();
+                player->SetRestBonus(currentRestBonus - (float(restedXP) / 2.0f));
+            }
 
             LOG_INFO("module.gathering", "Fishing XP Calculation:");
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
-            LOG_INFO("module.gathering", "- Skill Tier Multiplier: {:.2f}", skillTierMultiplier);
-            LOG_INFO("module.gathering", "- Progress Bonus: {:.4f}", progressBonus);
-            LOG_INFO("module.gathering", "- Level Multiplier: {:.2f}", levelMultiplier);
-            LOG_INFO("module.gathering", "- Zone Multiplier: {:.2f}", zoneMultiplier);
-            LOG_INFO("module.gathering", "- Total Skill Multiplier: {:.2f}", skillMultiplier);
+            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
+            LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {}", currentSkill, skillTierMult);
+            LOG_INFO("module.gathering", "- Progress Bonus: {}", progressBonus);
+            LOG_INFO("module.gathering", "- Zone Multiplier: {}", zoneMult);
+            LOG_INFO("module.gathering", "- Normal XP (before rested): {}", normalXP);
+            LOG_INFO("module.gathering", "- Rested Bonus Applied: {}", finalXP - normalXP);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
 
-            return std::min(finalXP, MAX_EXPERIENCE_GAIN);
+            return finalXP;
         }
-        else {
-            // Handle Mining, Herbalism, and Skinning
-            // Adjusted multipliers to match fishing progression
-            if (currentSkill >= requiredSkill + 100) {
+        else
+        {
+            // Skill level multiplier
+            if (currentSkill < requiredSkill)
+            {
                 skillMultiplier = 0.5f;  // Gray skill - reduced XP
             }
-            else if (currentSkill >= requiredSkill + 50) {
-                skillMultiplier = 0.75f;  // Green skill
+            else if (currentSkill < requiredSkill + 25)
+            {
+                skillMultiplier = 1.0f;  // Green skill - normal XP
             }
-            else if (currentSkill >= requiredSkill + 25) {
-                skillMultiplier = 1.0f;   // Yellow skill - base XP
+            else if (currentSkill < requiredSkill + 50)
+            {
+                skillMultiplier = 0.75f;  // Yellow skill - slightly reduced XP
             }
-            else {
-                skillMultiplier = 1.1f;   // Orange skill - slight bonus
+            else if (currentSkill < requiredSkill + 100)
+            {
+                skillMultiplier = 0.5f;  // Orange skill - reduced XP
             }
-
-            // Apply rarity multiplier for special items
-            float rarityMultiplier = GetRarityMultiplier(itemId);
+            else
+            {
+                skillMultiplier = 0.25f;  // Red skill - minimal XP
+            }
 
             uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
-
-            LOG_INFO("module.gathering", "Gathering XP Calculation:");
-            LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
-            LOG_INFO("module.gathering", "- Current Skill: {}", currentSkill);
-            LOG_INFO("module.gathering", "- Required Skill: {}", requiredSkill);
-            LOG_INFO("module.gathering", "- Skill Multiplier: {:.2f}", skillMultiplier);
-            LOG_INFO("module.gathering", "- Level Multiplier: {:.2f}", levelMultiplier);
-            LOG_INFO("module.gathering", "- Rarity Multiplier: {:.2f}", rarityMultiplier);
-            LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
-
-            return std::min(finalXP, MAX_EXPERIENCE_GAIN);
+            return finalXP;
         }
     }
 
