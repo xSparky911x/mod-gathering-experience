@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_professions` (
 -- Create settings table
 CREATE TABLE IF NOT EXISTS `gathering_experience_settings` (
     `profession` VARCHAR(32) NOT NULL,
-    `enabled` TINYINT(1) NOT NULL DEFAULT 1,
+    `enabled` TINYINT NOT NULL DEFAULT 1,
     `last_updated` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`profession`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
