@@ -183,6 +183,7 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (6361, 400, 0, 4, 'Raw Rainbow Fin Albacore'),
 (6362, 500, 0, 4, 'Raw Rockscale Cod'),
 (6289, 250, 0, 4, 'Raw Longjaw Mud Snapper'),
+(43646, 300, 0, 4, 'Fountain Goldfish'),
 (13422, 450, 0, 4, 'Stonescale Eel'),
 (13756, 205, 0, 4, 'Raw Spotted Yellowtail'),
 (21071, 600, 0, 4, 'Raw Sagefish'),

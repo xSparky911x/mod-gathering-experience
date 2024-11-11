@@ -21,6 +21,40 @@ enum GatheringProfessions
     PROF_FISHING    = 4
 };
 
+enum CitiesZoneIds
+{
+    ZONE_STORMWIND = 1519,
+    ZONE_IRONFORGE = 1537,
+    ZONE_DARNASSUS = 1657,
+    ZONE_ORGRIMMAR = 1637,
+    ZONE_THUNDERBLUFF = 1638,
+    ZONE_UNDERCITY = 1497,
+    ZONE_EXODAR = 3557,
+    ZONE_SILVERMOON = 3487,
+    ZONE_SHATTRATH = 3703,
+    ZONE_DALARAN = 4395,
+};
+
+bool IsCityZone(uint32 zoneId)
+{
+    switch (zoneId)
+    {
+        case ZONE_STORMWIND:
+        case ZONE_IRONFORGE:
+        case ZONE_DARNASSUS:
+        case ZONE_ORGRIMMAR:
+        case ZONE_THUNDERBLUFF:
+        case ZONE_UNDERCITY:
+        case ZONE_EXODAR:
+        case ZONE_SILVERMOON:
+        case ZONE_SHATTRATH:
+        case ZONE_DALARAN:
+            return true;
+        default:
+            return false;
+    }
+}
+
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
 private:
@@ -185,22 +219,110 @@ public:
         if (player->GetLevel() >= GATHERING_MAX_LEVEL)
             return 0;
 
-        // Declare all multipliers at the start
         float skillMultiplier = 1.0f;
-        float levelMultiplier = std::max(0.4f, player->GetLevel() / 80.0f);  // Minimum 0.4 multiplier
+        float levelMultiplier = std::min(1.0f, std::max(0.8f, player->GetLevel() / 40.0f));
         float rarityMultiplier = 1.0f;
 
         if (IsFishingItem(itemId))
         {
-            float skillTierMult = GetFishingTierMultiplier(currentSkill);
-            float progressBonus = std::max(0.1f, currentSkill / 300.0f);  // Minimum 0.1 bonus
+            // Adjust base XP based on both level and skill
+            uint32 adjustedBaseXP = baseXP;
+            std::string adjustReason;
+
+            // Standard minimum XP based on skill tiers
+            if (currentSkill > 300)
+            {
+                uint32 skillBasedMin = 200;
+                if (adjustedBaseXP < skillBasedMin)
+                {
+                    adjustedBaseXP = skillBasedMin;
+                    adjustReason = "minimum for skill > 300";
+                }
+            }
+            else if (currentSkill > 150)
+            {
+                uint32 skillBasedMin = 125;
+                if (adjustedBaseXP < skillBasedMin)
+                {
+                    adjustedBaseXP = skillBasedMin;
+                    adjustReason = "minimum for skill > 150";
+                }
+            }
+            else if (currentSkill > 75)
+            {
+                uint32 skillBasedMin = 100;
+                if (adjustedBaseXP < skillBasedMin)
+                {
+                    adjustedBaseXP = skillBasedMin;
+                    adjustReason = "minimum for skill > 75";
+                }
+            }
+
+            // Add level requirement penalty for high-level fish
+            float levelPenalty = 1.0f;
+            std::string penaltyReason;
+            
+            if (baseXP >= 500)  // High-level fish
+            {
+                uint32 recommendedLevel = 50;  // Base level for Outland
+                uint32 appropriateBaseXP = 150;  // Base XP for level-appropriate fish
+                
+                if (baseXP >= 625)  // Northrend fish
+                {
+                    recommendedLevel = 60;
+                    appropriateBaseXP = 200;
+                    
+                    // Additional penalty tiers for Northrend fish
+                    if (player->GetLevel() < 10)  // Extra severe penalty for very low levels
+                    {
+                        appropriateBaseXP = 25;  // Much more severe penalty
+                        penaltyReason = fmt::format("extremely reduced (level {} < 10)", player->GetLevel());
+                    }
+                    else if (player->GetLevel() < 30)
+                    {
+                        appropriateBaseXP = 75;  // Regular severe penalty
+                        penaltyReason = fmt::format("severely reduced (level {} < 30)", player->GetLevel());
+                    }
+                    else if (player->GetLevel() < 45)
+                    {
+                        appropriateBaseXP = 125;  // Moderate penalty
+                        penaltyReason = fmt::format("moderately reduced (level {} < 45)", player->GetLevel());
+                    }
+                    else if (player->GetLevel() < recommendedLevel)
+                    {
+                        penaltyReason = fmt::format("slightly reduced (level {} < {})", 
+                            player->GetLevel(), recommendedLevel);
+                    }
+                }
+                
+                if (player->GetLevel() < recommendedLevel)
+                {
+                    levelPenalty = float(appropriateBaseXP) / float(baseXP);
+                }
+            }
+
+            float rawSkillTierMult = GetFishingTierMultiplier(currentSkill);
+            float skillTierMult = std::min(1.2f, rawSkillTierMult);
+            float progressBonus = std::min(0.3f, currentSkill / 450.0f);
             float zoneMult = GetFishingZoneMultiplier(player->GetZoneId());
+            float rarityMult = GetRarityMultiplier(itemId);
 
-            // Calculate base experience without rested bonus
-            uint32 normalXP = static_cast<uint32>(baseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult);
+            // Get zone name for logging
+            std::string zoneName = "Unknown";
+            if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetZoneId()))
+            {
+                zoneName = area->area_name[0];
+            }
 
-            // Handle rested state properly
+            bool isCity = IsCityZone(player->GetZoneId());
+            if (isCity)
+            {
+                zoneMult = std::min(1.5f, zoneMult);
+            }
+
+            uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult * levelPenalty * rarityMult);
             uint32 finalXP = normalXP;
+
             if (player->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
             {
                 uint32 restedXP = player->GetXPRestBonus(normalXP);
@@ -211,11 +333,24 @@ public:
             }
 
             LOG_INFO("module.gathering", "Fishing XP Calculation:");
+            LOG_INFO("module.gathering", "- Zone: {} (ID: {}) {}", zoneName, player->GetZoneId(), isCity ? "[City]" : "");
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
+            if (adjustedBaseXP != baseXP)
+            {
+                LOG_INFO("module.gathering", "- Adjusted Base XP: {} ({})", adjustedBaseXP, adjustReason);
+            }
             LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
-            LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {}", currentSkill, skillTierMult);
+            if (levelPenalty < 1.0f)
+            {
+                LOG_INFO("module.gathering", "- Level Penalty: {} ({})", levelPenalty, penaltyReason);
+            }
+            LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {} (capped from {})", currentSkill, skillTierMult, rawSkillTierMult);
             LOG_INFO("module.gathering", "- Progress Bonus: {}", progressBonus);
             LOG_INFO("module.gathering", "- Zone Multiplier: {}", zoneMult);
+            if (rarityMult > 1.0f)
+            {
+                LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMult);
+            }
             LOG_INFO("module.gathering", "- Normal XP (before rested): {}", normalXP);
             LOG_INFO("module.gathering", "- Rested Bonus Applied: {}", finalXP - normalXP);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
@@ -224,29 +359,51 @@ public:
         }
         else
         {
+            // Get zone name for logging
+            std::string zoneName = "Unknown";
+            if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(player->GetZoneId()))
+            {
+                zoneName = area->area_name[0];
+            }
+
             // Skill level multiplier for non-fishing gathering
+            std::string skillColor;
             if (currentSkill < requiredSkill)
             {
-                skillMultiplier = 0.5f;  // Gray skill - reduced XP
+                skillMultiplier = 0.1f;  // Gray skill - minimal XP (too low skill)
+                skillColor = "Gray (Too Low)";
             }
             else if (currentSkill < requiredSkill + 25)
             {
-                skillMultiplier = 1.0f;  // Green skill - normal XP
+                skillMultiplier = 1.2f;  // Orange skill - highest XP (challenging)
+                skillColor = "Orange";
             }
             else if (currentSkill < requiredSkill + 50)
             {
-                skillMultiplier = 0.75f;  // Yellow skill - slightly reduced XP
+                skillMultiplier = 1.0f;  // Yellow skill - normal XP (moderate)
+                skillColor = "Yellow";
             }
-            else if (currentSkill < requiredSkill + 100)
+            else if (currentSkill < requiredSkill + 75)
             {
-                skillMultiplier = 0.5f;  // Orange skill - reduced XP
+                skillMultiplier = 0.8f;  // Green skill - reduced XP (easy)
+                skillColor = "Green";
             }
             else
             {
-                skillMultiplier = 0.25f;  // Red skill - minimal XP
+                skillMultiplier = 0.5f;  // Gray skill - minimal XP (trivial)
+                skillColor = "Gray (Trivial)";
             }
 
             uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
+
+            LOG_INFO("module.gathering", "Gathering XP Calculation:");
+            LOG_INFO("module.gathering", "- Zone: {} (ID: {})", zoneName, player->GetZoneId());
+            LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
+            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
+            LOG_INFO("module.gathering", "- Skill ({}/{}) Color: {} Multiplier: {}", currentSkill, requiredSkill, skillColor, skillMultiplier);
+            LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMultiplier);
+            LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
+
             return finalXP;
         }
     }
