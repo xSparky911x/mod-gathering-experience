@@ -213,7 +213,10 @@ INSERT IGNORE INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
 (15414, 1.5),  -- Red Dragonscale
 (15419, 2.5),  -- Pristine Hide of the Beast
 (15410, 3.0),  -- Scale of Onyxia
-(15423, 2.5);  -- Brilliant Chromatic Scale
+(15423, 2.5),  -- Brilliant Chromatic Scale
+
+-- Fishing
+(41802, 2.0);  -- Imperial Manta Ray
 
 
 -- ----------------------------------------
