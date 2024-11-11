@@ -187,13 +187,13 @@ public:
 
         // Declare all multipliers at the start
         float skillMultiplier = 1.0f;
-        float levelMultiplier = player->GetLevel() / 80.0f;
-        float rarityMultiplier = 1.0f;  // Default rarity multiplier
+        float levelMultiplier = std::max(0.4f, player->GetLevel() / 80.0f);  // Minimum 0.4 multiplier
+        float rarityMultiplier = 1.0f;
 
         if (IsFishingItem(itemId))
         {
             float skillTierMult = GetFishingTierMultiplier(currentSkill);
-            float progressBonus = CalculateProgressBonus(currentSkill);
+            float progressBonus = std::max(0.1f, currentSkill / 300.0f);  // Minimum 0.1 bonus
             float zoneMult = GetFishingZoneMultiplier(player->GetZoneId());
 
             // Calculate base experience without rested bonus
@@ -206,7 +206,6 @@ public:
                 uint32 restedXP = player->GetXPRestBonus(normalXP);
                 finalXP += restedXP;
                 
-                // Consume the rested XP
                 float currentRestBonus = player->GetRestBonus();
                 player->SetRestBonus(currentRestBonus - (float(restedXP) / 2.0f));
             }
@@ -225,7 +224,7 @@ public:
         }
         else
         {
-            // Skill level multiplier
+            // Skill level multiplier for non-fishing gathering
             if (currentSkill < requiredSkill)
             {
                 skillMultiplier = 0.5f;  // Gray skill - reduced XP
@@ -465,14 +464,10 @@ private:
         return tierMultiplier;
     }
 
-    float CalculateProgressBonus(uint32 currentSkill) const
+    float CalculateProgressBonus(uint32 currentSkill)
     {
-        // Further reduced progress bonus
-        static constexpr float PROGRESS_BONUS_RATE = 0.0001f;
-        
-        uint32 currentTierBase = (currentSkill / TIER_SIZE) * TIER_SIZE;
-        float progressInTier = (currentSkill - currentTierBase) / static_cast<float>(TIER_SIZE);
-        return progressInTier * PROGRESS_BONUS_RATE;
+        // Provide a more meaningful bonus at low levels
+        return std::max(0.1f, currentSkill / 300.0f);  // Minimum 0.1 bonus
     }
 
     void LogXPCalculation(uint32 baseXP, float skillTierMult, float progressBonus, 
