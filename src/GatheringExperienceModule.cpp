@@ -11,7 +11,7 @@
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
-const char* GATHERING_EXPERIENCE_VERSION = "0.4.1";
+const char* GATHERING_EXPERIENCE_VERSION = "0.4.2";
 
 enum GatheringProfessions
 {
@@ -747,16 +747,24 @@ public:
 
     static bool HandleGatheringAddCommand(ChatHandler* handler, const char* args)
     {
-        char* itemIdStr = strtok((char*)args, " ");
-        char* baseXPStr = strtok(nullptr, " ");
-        char* reqSkillStr = strtok(nullptr, " ");
-        char* professionStr = strtok(nullptr, " ");
-        char* nameStr = strtok(nullptr, "\n");
+        char* itemIdStr;
+        char* baseXPStr;
+        char* reqSkillStr;
+        char* professionStr;
+        char* nameStr;
+
+        // Extract the first 4 parameters
+        itemIdStr = strtok((char*)args, " ");
+        baseXPStr = strtok(nullptr, " ");
+        reqSkillStr = strtok(nullptr, " ");
+        professionStr = strtok(nullptr, " ");
+        
+        // Get the rest of the string for the name (after the profession)
+        nameStr = strtok(nullptr, "\n");
 
         if (!itemIdStr || !baseXPStr || !reqSkillStr || !professionStr || !nameStr)
         {
-            handler->SendSysMessage("Usage: .gathering add <itemId> <baseXP> <requiredSkill> <profession> <name>");
-            handler->SendSysMessage("Professions: Mining, Herbalism, Skinning, Fishing");
+            handler->SendSysMessage("Usage: .gathering add <itemId> <baseXP> <requiredSkill> <profession> \"<name>\"");
             return false;
         }
 
@@ -764,6 +772,16 @@ public:
         uint32 baseXP = atoi(baseXPStr);
         uint32 reqSkill = atoi(reqSkillStr);
         std::string profName = professionStr;
+        std::string itemName = nameStr;
+
+        // Clean up the name (remove quotes if present)
+        if (!itemName.empty())
+        {
+            if (itemName[0] == '"')
+                itemName = itemName.substr(1);
+            if (!itemName.empty() && itemName[itemName.length()-1] == '"')
+                itemName = itemName.substr(0, itemName.length()-1);
+        }
 
         uint8 professionId = GetProfessionIdByName(profName);
         if (professionId == 0)
@@ -774,7 +792,7 @@ public:
         }
 
         WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) VALUES ({}, {}, {}, {}, '{}')",
-            itemId, baseXP, reqSkill, professionId, nameStr);
+            itemId, baseXP, reqSkill, professionId, itemName);
 
         if (!GatheringExperienceModule::instance)
         {
@@ -783,7 +801,8 @@ public:
         }
 
         GatheringExperienceModule::instance->LoadDataFromDB();
-        handler->PSendSysMessage("Added gathering item {} to database for profession {} and reloaded data.", itemId, profName);
+        handler->PSendSysMessage("Added gathering item {} ({}) to database for profession {} and reloaded data.", 
+            itemId, itemName, profName);
         return true;
     }
 
@@ -826,38 +845,68 @@ public:
 
     static bool HandleGatheringModifyCommand(ChatHandler* handler, const char* args)
     {
-        char* itemIdStr = strtok((char*)args, " ");
-        char* fieldStr = strtok(nullptr, " ");
-        char* valueStr = strtok(nullptr, " ");
+        char* itemIdStr;
+        char* fieldStr;
+        char* valueStr;
 
-        if (!itemIdStr || !fieldStr || !valueStr)
+        // Extract itemId and field
+        itemIdStr = strtok((char*)args, " ");
+        fieldStr = strtok(nullptr, " ");
+        
+        if (!itemIdStr || !fieldStr)
         {
             handler->SendSysMessage("Usage: .gathering modify <itemId> <field> <value>");
             handler->SendSysMessage("Fields: basexp, reqskill, profession, name");
-            handler->SendSysMessage("Example: .gathering modify 2770 profession Mining");
             return false;
+        }
+
+        std::string field = fieldStr;
+        std::string value;
+
+        if (field == "name")
+        {
+            // Get the rest of the string for the name
+            valueStr = strtok(nullptr, "\n");
+            if (!valueStr)
+            {
+                handler->SendSysMessage("Name value is required");
+                return false;
+            }
+            
+            value = valueStr;
+            // Clean up the name (remove quotes if present)
+            if (!value.empty())
+            {
+                if (value[0] == '"')
+                    value = value.substr(1);
+                if (!value.empty() && value[value.length()-1] == '"')
+                    value = value.substr(0, value.length()-1);
+            }
+        }
+        else
+        {
+            valueStr = strtok(nullptr, " ");
+            if (!valueStr)
+            {
+                handler->SendSysMessage("Value is required");
+                return false;
+            }
+            value = valueStr;
         }
 
         uint32 itemId = atoi(itemIdStr);
-        std::string field = fieldStr;
-        std::string value = valueStr;
 
-        // First check if item exists
-        QueryResult checkItem = WorldDatabase.Query("SELECT 1 FROM gathering_experience WHERE item_id = {}", itemId);
-        if (!checkItem)
-        {
-            handler->PSendSysMessage("Item ID {} not found in gathering database.", itemId);
-            return false;
-        }
-
-        std::string query = "UPDATE gathering_experience SET ";
         if (field == "basexp")
         {
-            query += Acore::StringFormat("base_xp = {}", atoi(value.c_str()));
+            uint32 baseXP = atoi(value.c_str());
+            WorldDatabase.DirectExecute("UPDATE gathering_experience SET base_xp = {} WHERE item_id = {}", 
+                baseXP, itemId);
         }
         else if (field == "reqskill")
         {
-            query += Acore::StringFormat("required_skill = {}", atoi(value.c_str()));
+            uint32 reqSkill = atoi(value.c_str());
+            WorldDatabase.DirectExecute("UPDATE gathering_experience SET required_skill = {} WHERE item_id = {}", 
+                reqSkill, itemId);
         }
         else if (field == "profession")
         {
@@ -868,49 +917,28 @@ public:
                 handler->SendSysMessage("Valid professions: Mining, Herbalism, Skinning, Fishing");
                 return false;
             }
-            query += Acore::StringFormat("profession = {}", professionId);
+            WorldDatabase.DirectExecute("UPDATE gathering_experience SET profession = {} WHERE item_id = {}", 
+                professionId, itemId);
         }
         else if (field == "name")
         {
-            query += Acore::StringFormat("name = '{}'", value.c_str());
+            WorldDatabase.DirectExecute("UPDATE gathering_experience SET name = '{}' WHERE item_id = {}", 
+                value, itemId);
         }
         else
         {
-            handler->SendSysMessage("Invalid field specified.");
-            handler->SendSysMessage("Valid fields: basexp, reqskill, profession, name");
+            handler->SendSysMessage("Invalid field. Valid fields are: basexp, reqskill, profession, name");
             return false;
         }
 
-        query += Acore::StringFormat(" WHERE item_id = {}", itemId);
-        WorldDatabase.DirectExecute(query);
-        
-        // Force reload of data after modification
         if (!GatheringExperienceModule::instance)
         {
-            handler->PSendSysMessage("Failed to reload data after modifying item {}.", itemId);
+            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
             return false;
         }
 
         GatheringExperienceModule::instance->LoadDataFromDB();
-        
-        // Show updated item details AFTER reload
-        QueryResult result = WorldDatabase.Query(
-            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.name "
-            "FROM gathering_experience ge "
-            "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
-            "WHERE ge.item_id = {}", itemId);
-
-        if (result)
-        {
-            Field* fields = result->Fetch();
-            handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
-                fields[0].Get<uint32>(),
-                fields[1].Get<uint32>(),
-                fields[2].Get<uint32>(),
-                fields[3].Get<std::string>(),
-                fields[4].Get<std::string>());
-        }
-
+        handler->PSendSysMessage("Modified {} to {} for item {}", field, value, itemId);
         return true;
     }
 
@@ -1001,7 +1029,7 @@ public:
         handler->SendSysMessage("Gathering Experience Module Commands:");
         handler->SendSysMessage("  .gathering version - Shows module version");
         handler->SendSysMessage("  .gathering reload - Reloads data from database");
-        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <reqSkill> <profession> <name>");
+        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <requiredSkill> <profession> \"<name>\"");
         handler->SendSysMessage("  .gathering remove <itemId>");
         handler->SendSysMessage("  .gathering modify <itemId> <field> <value>");
         handler->SendSysMessage("    Fields: basexp, reqskill, profession, name");
