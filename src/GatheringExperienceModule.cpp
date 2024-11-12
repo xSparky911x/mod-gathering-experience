@@ -216,98 +216,16 @@ public:
     // Function to calculate scaled experience based on player level and item base XP
     uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
     {
-        if (player->GetLevel() >= GATHERING_MAX_LEVEL)
+        if (!player)
             return 0;
 
-        float skillMultiplier = 1.0f;
-        float levelMultiplier = std::min(8.0f, std::max(0.8f, player->GetLevel() / 10.0f));
-        float rarityMultiplier = 1.0f;
-
+        // For fishing items
         if (IsFishingItem(itemId))
         {
-            // Adjust base XP based on both level and skill
-            uint32 adjustedBaseXP = baseXP;
-            std::string adjustReason;
-
-            // Standard minimum XP based on skill tiers
-            if (currentSkill > 300)
-            {
-                uint32 skillBasedMin = 200;
-                if (adjustedBaseXP < skillBasedMin)
-                {
-                    adjustedBaseXP = skillBasedMin;
-                    adjustReason = "minimum for skill > 300";
-                }
-            }
-            else if (currentSkill > 150)
-            {
-                uint32 skillBasedMin = 125;
-                if (adjustedBaseXP < skillBasedMin)
-                {
-                    adjustedBaseXP = skillBasedMin;
-                    adjustReason = "minimum for skill > 150";
-                }
-            }
-            else if (currentSkill > 75)
-            {
-                uint32 skillBasedMin = 100;
-                if (adjustedBaseXP < skillBasedMin)
-                {
-                    adjustedBaseXP = skillBasedMin;
-                    adjustReason = "minimum for skill > 75";
-                }
-            }
-
-            // Add level requirement adjustments
             float levelPenalty = 1.0f;
             std::string penaltyReason;
-            
-            // Get recommended level for this fish/zone
-            uint32 recommendedLevel = 1;  // Default for starter areas
-            if (baseXP >= 625)  // Northrend fish
-                recommendedLevel = 60;
-            else if (baseXP >= 500)  // Outland fish
-                recommendedLevel = 50;
-            else if (baseXP >= 300)
-                recommendedLevel = 40;
-            else if (baseXP >= 200)
-                recommendedLevel = 30;
-            else if (baseXP >= 100)
-                recommendedLevel = 20;
-
-            // Calculate level difference
-            int32 levelDiff = player->GetLevel() - recommendedLevel;
-            
-            if (levelDiff < -20)  // Way too low level for area
-            {
-                levelPenalty = 0.1f;  // 90% reduction
-                penaltyReason = fmt::format("extremely reduced (level {} << {})", 
-                    player->GetLevel(), recommendedLevel);
-            }
-            else if (levelDiff < -10)  // Moderately too low
-            {
-                levelPenalty = 0.25f;  // 75% reduction
-                penaltyReason = fmt::format("severely reduced (level {} < {})", 
-                    player->GetLevel(), recommendedLevel);
-            }
-            else if (levelDiff > 20)  // Way too high level for area
-            {
-                levelPenalty = 0.05f;  // 95% reduction
-                penaltyReason = fmt::format("heavily reduced (level {} >> {})", 
-                    player->GetLevel(), recommendedLevel);
-            }
-            else if (levelDiff > 10)  // Moderately too high
-            {
-                levelPenalty = 0.5f;  // 50% reduction
-                penaltyReason = fmt::format("slightly reduced (level {} > {})", 
-                    player->GetLevel(), recommendedLevel);
-            }
-
-            float rawSkillTierMult = GetFishingTierMultiplier(currentSkill);
-            float skillTierMult = std::min(1.2f, rawSkillTierMult);
-            float progressBonus = std::min(0.3f, currentSkill / 450.0f);
-            float zoneMult = GetFishingZoneMultiplier(player->GetZoneId());
-            float rarityMult = GetRarityMultiplier(itemId);
+            std::string adjustReason;
+            uint32 adjustedBaseXP = baseXP;
 
             // Get zone name for logging
             std::string zoneName = "Unknown";
@@ -316,16 +234,44 @@ public:
                 zoneName = area->area_name[0];
             }
 
+            // Get level multiplier using new function
+            float levelMultiplier = GetLevelMultiplier(player->GetLevel());
+
+            // Get skill tier multiplier
+            float rawSkillTierMult = GetFishingTierMultiplier(currentSkill);
+            float skillTierMult = std::min(1.2f, rawSkillTierMult);
+
+            // Progress bonus - scaled and capped
+            float progressBonus = CalculateProgressBonus(currentSkill);
+
+            // Zone multiplier - capped lower
+            float zoneMult = std::min(1.5f, GetFishingZoneMultiplier(player->GetZoneId()));
+
+            // Rarity multiplier - capped
+            float rarityMult = std::min(1.5f, GetRarityMultiplier(itemId));
+
+            // City check and multiplier cap
             bool isCity = IsCityZone(player->GetZoneId());
             if (isCity)
             {
-                zoneMult = std::min(1.5f, zoneMult);
+                zoneMult = std::min(1.25f, zoneMult);
             }
 
-            uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult * levelPenalty * rarityMult);
+            // Calculate final XP with additive stacking of bonuses
+            uint32 normalXP = static_cast<uint32>(
+                baseXP * 
+                levelMultiplier * 
+                (1.0f + // Base
+                 (skillTierMult - 1.0f) + // Skill bonus
+                 progressBonus + // Progress bonus
+                 (zoneMult - 1.0f) + // Zone bonus
+                 (rarityMult - 1.0f)) * // Rarity bonus
+                levelPenalty
+            );
+            
             uint32 finalXP = normalXP;
 
-            // Check if player has any rested XP available
+            // Apply rested bonus if available
             if (player->GetRestBonus() > 0)
             {
                 uint32 restedXP = player->GetXPRestBonus(normalXP);
@@ -335,6 +281,7 @@ public:
                 player->SetRestBonus(currentRestBonus - (float(restedXP) / 2.0f));
             }
 
+            // Detailed logging
             LOG_INFO("module.gathering", "Fishing XP Calculation:");
             LOG_INFO("module.gathering", "- Zone: {} (ID: {}) {}", zoneName, player->GetZoneId(), isCity ? "[City]" : "");
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
@@ -342,17 +289,17 @@ public:
             {
                 LOG_INFO("module.gathering", "- Adjusted Base XP: {} ({})", adjustedBaseXP, adjustReason);
             }
-            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
+            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {:.2f}", player->GetLevel(), levelMultiplier);
             if (levelPenalty < 1.0f)
             {
-                LOG_INFO("module.gathering", "- Level Penalty: {} ({})", levelPenalty, penaltyReason);
+                LOG_INFO("module.gathering", "- Level Penalty: {:.2f} ({})", levelPenalty, penaltyReason);
             }
-            LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {} (capped from {})", currentSkill, skillTierMult, rawSkillTierMult);
-            LOG_INFO("module.gathering", "- Progress Bonus: {}", progressBonus);
-            LOG_INFO("module.gathering", "- Zone Multiplier: {}", zoneMult);
+            LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {:.2f} (capped from {:.2f})", currentSkill, skillTierMult, rawSkillTierMult);
+            LOG_INFO("module.gathering", "- Progress Bonus: {:.2f}", progressBonus);
+            LOG_INFO("module.gathering", "- Zone Multiplier: {:.2f}", zoneMult);
             if (rarityMult > 1.0f)
             {
-                LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMult);
+                LOG_INFO("module.gathering", "- Rarity Multiplier: {:.2f}", rarityMult);
             }
             LOG_INFO("module.gathering", "- Normal XP (before rested): {}", normalXP);
             LOG_INFO("module.gathering", "- Rested Bonus Applied: {}", finalXP - normalXP);
@@ -369,8 +316,11 @@ public:
                 zoneName = area->area_name[0];
             }
 
-            // Skill level multiplier for non-fishing gathering
+            // Initialize variables at the start
+            float skillMultiplier = 0.0f;
             std::string skillColor;
+
+            // Skill level multiplier for non-fishing gathering
             if (currentSkill < requiredSkill)
             {
                 skillMultiplier = 0.1f;  // Gray skill - minimal XP (too low skill)
@@ -396,6 +346,10 @@ public:
                 skillMultiplier = 0.5f;  // Gray skill - minimal XP (trivial)
                 skillColor = "Gray (Trivial)";
             }
+
+            // Get level multiplier using new function
+            float levelMultiplier = GetLevelMultiplier(player->GetLevel());
+            float rarityMultiplier = std::min(1.5f, GetRarityMultiplier(itemId));
 
             uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
 
@@ -604,13 +558,27 @@ public:
     bool IsFishingEnabled() const { return fishingEnabled; }
 
 private:
+    // Helper function for level-based multiplier
+    float GetLevelMultiplier(uint8 level) const
+    {
+        if (level < 20)
+            return std::max(0.2f, level / 60.0f);  // Lower minimum (0.2 instead of 0.3)
+        else if (level < 40)
+            return std::max(0.3f, level / 50.0f);  // Much slower scaling (50 instead of 35)
+        else if (level < 60)
+            return std::min(1.0f, level / 40.0f);  // Reduced cap for 40-60 (1.0 instead of 1.5)
+        else if (level < 70)
+            return std::min(1.25f, level / 35.0f); // Moderate scaling for 60-70
+        else
+            return 1.5f;                           // Max multiplier for 70+
+    }
+
     // Helper functions for cleaner code
     float GetFishingTierMultiplier(uint32 currentSkill) const
     {
         float tierMultiplier;
-        // Adjusted multipliers to give ~400 XP with zone multiplier of 1.0
         if (currentSkill <= TIER_1_MAX)
-            tierMultiplier = 1.0f;        // Beginner tier (starter areas) - 400 * 1.0 * 1.0 = 400 XP
+            tierMultiplier = 1.0f;        // Beginner tier
         else if (currentSkill <= TIER_2_MAX)
             tierMultiplier = 1.1f;        // Apprentice tier
         else if (currentSkill <= TIER_3_MAX)
@@ -626,8 +594,7 @@ private:
 
     float CalculateProgressBonus(uint32 currentSkill)
     {
-        // Provide a more meaningful bonus at low levels
-        return std::max(0.1f, currentSkill / 300.0f);  // Minimum 0.1 bonus
+        return std::min(0.2f, currentSkill / 500.0f);  // Capped at 0.2 (20%)
     }
 
     void LogXPCalculation(uint32 baseXP, float skillTierMult, float progressBonus, 
