@@ -11,7 +11,7 @@
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
-const char* GATHERING_EXPERIENCE_VERSION = "0.4";
+const char* GATHERING_EXPERIENCE_VERSION = "0.4.1";
 
 enum GatheringProfessions
 {
@@ -220,7 +220,7 @@ public:
             return 0;
 
         float skillMultiplier = 1.0f;
-        float levelMultiplier = std::min(1.0f, std::max(0.8f, player->GetLevel() / 40.0f));
+        float levelMultiplier = std::min(8.0f, std::max(0.8f, player->GetLevel() / 10.0f));
         float rarityMultiplier = 1.0f;
 
         if (IsFishingItem(itemId))
@@ -258,47 +258,49 @@ public:
                 }
             }
 
-            // Add level requirement penalty for high-level fish
+            // Add level requirement adjustments
             float levelPenalty = 1.0f;
             std::string penaltyReason;
             
-            if (baseXP >= 500)  // High-level fish
+            // Get recommended level for this fish/zone
+            uint32 recommendedLevel = 1;  // Default for starter areas
+            if (baseXP >= 625)  // Northrend fish
+                recommendedLevel = 60;
+            else if (baseXP >= 500)  // Outland fish
+                recommendedLevel = 50;
+            else if (baseXP >= 300)
+                recommendedLevel = 40;
+            else if (baseXP >= 200)
+                recommendedLevel = 30;
+            else if (baseXP >= 100)
+                recommendedLevel = 20;
+
+            // Calculate level difference
+            int32 levelDiff = player->GetLevel() - recommendedLevel;
+            
+            if (levelDiff < -20)  // Way too low level for area
             {
-                uint32 recommendedLevel = 50;  // Base level for Outland
-                uint32 appropriateBaseXP = 150;  // Base XP for level-appropriate fish
-                
-                if (baseXP >= 625)  // Northrend fish
-                {
-                    recommendedLevel = 60;
-                    appropriateBaseXP = 200;
-                    
-                    // Additional penalty tiers for Northrend fish
-                    if (player->GetLevel() < 10)  // Extra severe penalty for very low levels
-                    {
-                        appropriateBaseXP = 25;  // Much more severe penalty
-                        penaltyReason = fmt::format("extremely reduced (level {} < 10)", player->GetLevel());
-                    }
-                    else if (player->GetLevel() < 30)
-                    {
-                        appropriateBaseXP = 75;  // Regular severe penalty
-                        penaltyReason = fmt::format("severely reduced (level {} < 30)", player->GetLevel());
-                    }
-                    else if (player->GetLevel() < 45)
-                    {
-                        appropriateBaseXP = 125;  // Moderate penalty
-                        penaltyReason = fmt::format("moderately reduced (level {} < 45)", player->GetLevel());
-                    }
-                    else if (player->GetLevel() < recommendedLevel)
-                    {
-                        penaltyReason = fmt::format("slightly reduced (level {} < {})", 
-                            player->GetLevel(), recommendedLevel);
-                    }
-                }
-                
-                if (player->GetLevel() < recommendedLevel)
-                {
-                    levelPenalty = float(appropriateBaseXP) / float(baseXP);
-                }
+                levelPenalty = 0.1f;  // 90% reduction
+                penaltyReason = fmt::format("extremely reduced (level {} << {})", 
+                    player->GetLevel(), recommendedLevel);
+            }
+            else if (levelDiff < -10)  // Moderately too low
+            {
+                levelPenalty = 0.25f;  // 75% reduction
+                penaltyReason = fmt::format("severely reduced (level {} < {})", 
+                    player->GetLevel(), recommendedLevel);
+            }
+            else if (levelDiff > 20)  // Way too high level for area
+            {
+                levelPenalty = 0.05f;  // 95% reduction
+                penaltyReason = fmt::format("heavily reduced (level {} >> {})", 
+                    player->GetLevel(), recommendedLevel);
+            }
+            else if (levelDiff > 10)  // Moderately too high
+            {
+                levelPenalty = 0.5f;  // 50% reduction
+                penaltyReason = fmt::format("slightly reduced (level {} > {})", 
+                    player->GetLevel(), recommendedLevel);
             }
 
             float rawSkillTierMult = GetFishingTierMultiplier(currentSkill);
@@ -323,7 +325,8 @@ public:
             uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult * levelPenalty * rarityMult);
             uint32 finalXP = normalXP;
 
-            if (player->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING))
+            // Check if player has any rested XP available
+            if (player->GetRestBonus() > 0)
             {
                 uint32 restedXP = player->GetXPRestBonus(normalXP);
                 finalXP += restedXP;
