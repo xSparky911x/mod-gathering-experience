@@ -345,6 +345,7 @@ INSERT IGNORE INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALUES
+-- Cities (1.25x cap)
 (1519, 1.25, 'Stormwind City'),
 (1537, 1.25, 'Ironforge'),
 (1657, 1.25, 'Darnassus'),
