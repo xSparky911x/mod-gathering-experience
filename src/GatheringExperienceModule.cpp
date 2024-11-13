@@ -813,6 +813,10 @@ public:
             return false;
         }
 
+        // First remove from rarity table if it exists
+        WorldDatabase.DirectExecute("DELETE FROM gathering_experience_rarity WHERE item_id = {}", itemId);
+        
+        // Then remove from main table
         WorldDatabase.DirectExecute("DELETE FROM gathering_experience WHERE item_id = {}", itemId);
 
         if (!GatheringExperienceModule::instance)

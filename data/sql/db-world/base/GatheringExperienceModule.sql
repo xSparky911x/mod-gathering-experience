@@ -1,3 +1,5 @@
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+
 -- ----------------------------------------
 -- Table Creation
 -- ----------------------------------------
@@ -402,3 +404,5 @@ INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALU
 (4197, 1.5, 'Wintergrasp'),
 (4395, 1.25, 'Dalaran'),
 (4742, 1.5, 'Hrothgar\'s Landing');
+
+SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
