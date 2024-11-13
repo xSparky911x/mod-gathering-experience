@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_professions` (
     PRIMARY KEY (`profession_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 -- Create settings table
 CREATE TABLE IF NOT EXISTS `gathering_experience_settings` (
     `profession` VARCHAR(32) NOT NULL,
@@ -18,7 +17,6 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_settings` (
     `last_updated` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (`profession`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 -- Create main gathering experience table
 CREATE TABLE IF NOT EXISTS `gathering_experience` (
@@ -31,7 +29,6 @@ CREATE TABLE IF NOT EXISTS `gathering_experience` (
     FOREIGN KEY (`profession`) REFERENCES `gathering_experience_professions` (`profession_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 -- Create rarity multiplier table
 CREATE TABLE IF NOT EXISTS `gathering_experience_rarity` (
     `item_id` INT UNSIGNED NOT NULL,
@@ -41,7 +38,6 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_rarity` (
     FOREIGN KEY (`item_id`) REFERENCES `gathering_experience` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 -- Create fishing zone multiplier table
 CREATE TABLE IF NOT EXISTS `gathering_experience_zones` (
     `zone_id` INT UNSIGNED NOT NULL,
@@ -50,26 +46,21 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_zones` (
     PRIMARY KEY (`zone_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 -- ----------------------------------------
 -- Initial Data Setup
 -- ----------------------------------------
 
--- Insert professions first (since they're referenced)
 INSERT IGNORE INTO `gathering_experience_professions` (profession_id, name, description) VALUES
 (1, 'Mining', 'Gathering ore and minerals'),
 (2, 'Herbalism', 'Gathering herbs and plants'),
 (3, 'Skinning', 'Gathering leather and hides'),
 (4, 'Fishing', 'Catching fish and other aquatic items');
 
-
--- Insert default enabled/disabled values
 INSERT IGNORE INTO `gathering_experience_settings` (`profession`, `enabled`) VALUES
 ('mining', 1),
 ('herbalism', 1),
 ('skinning', 1),
 ('fishing', 1);
-
 
 -- ----------------------------------------
 -- Mining Data
@@ -130,7 +121,6 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (37703, 350, 400, 1, 'Crystallized Shadow'),
 (37702, 325, 450, 1, 'Crystallized Fire');
 
-
 -- ----------------------------------------
 -- Skinning Data
 -- ----------------------------------------
@@ -183,7 +173,6 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (15419, 475, 475, 3, 'Pristine Hide of the Beast'),
 (15410, 500, 500, 3, 'Scale of Onyxia'),
 (15423, 525, 525, 3, 'Brilliant Chromatic Scale');
-
 
 -- ----------------------------------------
 -- Herbalism Data
@@ -243,7 +232,6 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (36907, 850, 450, 2, 'Talandra\'s Rose'),
 (36908, 875, 450, 2, 'Frost Lotus');
 
-
 -- ----------------------------------------
 -- Fishing Data
 -- ----------------------------------------
@@ -259,6 +247,8 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (6362, 225, 0, 4, 'Raw Rockscale Cod'),
 (4603, 300, 0, 4, 'Raw Spotted Yellowtail'),
 (6317, 100, 0, 4, 'Raw Loch Frenzy'),
+(21071, 250, 0, 4, 'Raw Sagefish'),
+(21153, 275, 0, 4, 'Raw Greater Sagefish'),
 
 -- Mid Level Fish
 (12238, 150, 0, 4, 'Darkshore Grouper'),
@@ -292,7 +282,6 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (41810, 825, 0, 4, 'Fangtooth Herring'),
 (41812, 850, 0, 4, 'Giant Darkwater Clam'),
 (41813, 875, 0, 4, 'Succulent Orca Steak');
-
 
 -- ----------------------------------------
 -- Rarity Multipliers
@@ -341,7 +330,6 @@ INSERT IGNORE INTO `gathering_experience_rarity` (item_id, multiplier, name) VAL
 (41812, 2, 'Giant Darkwater Clam'),
 (41813, 2, 'Succulent Orca Steak'),
 (44128, 1.5, 'Arctic Fur');
-
 
 -- ----------------------------------------
 -- Zone Multipliers
