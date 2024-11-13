@@ -219,7 +219,7 @@ public:
             }
 
             // Get level multiplier using new function
-            float levelMultiplier = GetLevelMultiplier(player->GetLevel());
+            float levelMultiplier = GetFishingLevelMultiplier(player->GetLevel(), currentSkill);
 
             // Get skill tier multiplier
             float rawSkillTierMult = GetFishingTierMultiplier(currentSkill);
@@ -333,7 +333,7 @@ public:
             }
 
             // Get level multiplier using same function as fishing
-            float levelMultiplier = GetLevelMultiplier(player->GetLevel());
+            float levelMultiplier = GetLevelMultiplier(player->GetLevel(), currentSkill);
 
             // Calculate final XP with additive stacking like fishing
             uint32 finalXP = static_cast<uint32>(
@@ -541,18 +541,40 @@ public:
 
 private:
     // Helper function for level-based multiplier
-    float GetLevelMultiplier(uint8 level) const
+    float GetLevelMultiplier(uint8 playerLevel, uint32 currentSkill) const
     {
-        if (level >= GATHERING_MAX_LEVEL)  // Cap at level 80
-            return 1.5f;                   // Maximum multiplier (up from 1.0)
-        else if (level < 20)
-            return std::max(0.4f, level / 60.0f);     // 0.4 to 0.33 (better low level rewards)
-        else if (level < 40)
-            return std::max(0.5f, level / 50.0f);     // 0.5 to 0.8 (smoother mid-level progression)
-        else if (level < 60)
-            return std::max(0.7f, level / 45.0f);     // 0.7 to 1.33 (better high-level rewards)
-        else
-            return std::min(1.5f, level / 40.0f);     // Up to 1.5 for max level
+        // No XP at max level
+        if (playerLevel >= GATHERING_MAX_LEVEL)
+            return 0.0f;
+
+        // Base multiplier starts at 0.8 to keep below mob XP
+        float multiplier = 0.8f;
+
+        // Calculate level difference from expected zone level
+        int levelDiff = playerLevel - (currentSkill / 5);
+
+        if (levelDiff > 5)  // Player is higher level than expected
+        {
+            if (playerLevel >= 60)  // Outland/Northrend levels
+            {
+                multiplier = std::min(2.0f, 0.8f + (0.02f * playerLevel));
+            }
+            else if (playerLevel >= 30)  // Mid levels
+            {
+                multiplier = std::min(1.5f, 0.8f + (0.015f * playerLevel));
+            }
+            else  // Low levels
+            {
+                multiplier = std::min(1.0f, 0.8f + (0.01f * playerLevel));
+            }
+        }
+        else if (levelDiff < -5)  // Player is lower level than expected
+        {
+            // Reduce multiplier by 10% for each level below, minimum 0.4
+            multiplier = std::max(0.4f, 0.8f - (0.1f * (-levelDiff - 5)));
+        }
+
+        return multiplier;
     }
 
     // Helper functions for cleaner code
@@ -637,6 +659,42 @@ private:
     {
         WorldDatabase.Execute("UPDATE gathering_experience_settings SET enabled = {} WHERE profession = '{}'",
             enabled ? 1 : 0, profession);
+    }
+
+    float GetFishingLevelMultiplier(uint8 playerLevel, uint32 currentSkill) const
+    {
+        if (playerLevel >= GATHERING_MAX_LEVEL)
+            return 0.0f;
+
+        // Base multiplier starts lower for fishing
+        float multiplier = 0.6f;
+
+        // Use current fishing skill to determine appropriate level range
+        uint32 expectedLevel = currentSkill / 5;
+
+        // If player is within reasonable range of their skill level
+        if (playerLevel >= expectedLevel)
+        {
+            if (playerLevel >= 60)
+            {
+                multiplier = std::min(1.5f, 0.6f + (0.015f * playerLevel));
+            }
+            else if (playerLevel >= 30)
+            {
+                multiplier = std::min(1.2f, 0.6f + (0.01f * playerLevel));
+            }
+            else
+            {
+                multiplier = std::min(0.8f, 0.6f + (0.005f * playerLevel));
+            }
+        }
+        else
+        {
+            // Reduce XP if fishing above their level
+            multiplier = std::max(0.2f, multiplier - (0.1f * (expectedLevel - playerLevel)));
+        }
+
+        return multiplier;
     }
 };
 
