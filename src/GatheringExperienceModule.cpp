@@ -666,33 +666,46 @@ private:
         if (playerLevel >= GATHERING_MAX_LEVEL)
             return 0.0f;
 
-        // Base multiplier starts lower for fishing
-        float multiplier = 0.6f;
+        // Base multiplier starts at 1.0
+        float multiplier = 1.0f;
 
-        // Use current fishing skill to determine appropriate level range
-        uint32 expectedLevel = currentSkill / 5;
-
-        // If player is within reasonable range of their skill level
-        if (playerLevel >= expectedLevel)
+        // Calculate level-based bonus with stronger scaling for higher levels
+        float levelBonus;
+        if (playerLevel >= 60)  // Outland/Northrend levels
         {
-            if (playerLevel >= 60)
-            {
-                multiplier = std::min(1.5f, 0.6f + (0.015f * playerLevel));
-            }
-            else if (playerLevel >= 30)
-            {
-                multiplier = std::min(1.2f, 0.6f + (0.01f * playerLevel));
-            }
-            else
-            {
-                multiplier = std::min(0.8f, 0.6f + (0.005f * playerLevel));
-            }
+            levelBonus = 2.0f + ((playerLevel - 60) * 0.1f);  // 2.0 at 60, up to 3.9 at 79
+        }
+        else if (playerLevel >= 30)  // Mid levels
+        {
+            levelBonus = 1.5f + ((playerLevel - 30) * 0.017f);  // 1.5 at 30, up to 2.0 at 59
+        }
+        else  // Low levels
+        {
+            levelBonus = 1.5f;  // Flat 1.5x for low levels
+        }
+        
+        // Skill vs Level check
+        uint32 expectedLevel = currentSkill / 5;
+        float levelDiff = static_cast<float>(expectedLevel) - playerLevel;
+        
+        if (levelDiff > 0)
+        {
+            // Fishing above level - reduce by 5% per level, minimum 1.0
+            multiplier = std::max(1.0f, levelBonus - (0.05f * levelDiff));
         }
         else
         {
-            // Reduce XP if fishing above their level
-            multiplier = std::max(0.2f, multiplier - (0.1f * (expectedLevel - playerLevel)));
+            // Fishing at or below level - apply level bonus
+            multiplier = levelBonus;
         }
+
+        // Add more detailed debug logging
+        LOG_DEBUG("module.gathering", "Fishing Level Multiplier Calculation:");
+        LOG_DEBUG("module.gathering", "- Player Level: {}", playerLevel);
+        LOG_DEBUG("module.gathering", "- Expected Level: {}", expectedLevel);
+        LOG_DEBUG("module.gathering", "- Level Difference: {}", levelDiff);
+        LOG_DEBUG("module.gathering", "- Base Level Bonus: {:.2f}", levelBonus);
+        LOG_DEBUG("module.gathering", "- Final Multiplier: {:.2f}", multiplier);
 
         return multiplier;
     }

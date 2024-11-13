@@ -229,20 +229,28 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
--- Starter Fish (1-25)
+-- Starter Fish
 (6291, 100, 0, 4, 'Raw Brilliant Smallfish'),
+(6292, 150, 0, 4, '10 Pound Mud Snapper'),
+(6294, 150, 0, 4, '12 Pound Mud Snapper'),
+(6295, 150, 0, 4, '15 Pound Mud Snapper'),
 
--- Low Level Fish (25-150)
+-- Low Level Fish
 (6289, 200, 0, 4, 'Raw Longjaw Mud Snapper'),
 (6317, 200, 0, 4, 'Raw Loch Frenzy'),
 (6308, 250, 0, 4, 'Raw Bristle Whisker Catfish'),
+(6309, 300, 0, 4, '17 Pound Catfish'),
+(6310, 300, 0, 4, '19 Pound Catfish'),
+(6311, 325, 0, 4, '22 Pound Catfish'),
+(6363, 325, 0, 4, '26 Pound Catfish'),
+(6364, 350, 0, 4, '32 Pound Catfish'),
 (6358, 300, 0, 4, 'Oily Blackmouth'),
 (12238, 300, 0, 4, 'Darkshore Grouper'),
 (6359, 350, 0, 4, 'Firefin Snapper'),
 (6361, 400, 0, 4, 'Raw Rainbow Fin Albacore'),
 (6362, 450, 0, 4, 'Raw Rockscale Cod'),
 
--- Mid Level Fish (150-300)
+-- Mid Level Fish
 (21071, 500, 0, 4, 'Raw Sagefish'),
 (21153, 550, 0, 4, 'Raw Greater Sagefish'),
 (4603, 600, 0, 4, 'Raw Spotted Yellowtail'),
@@ -251,7 +259,7 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (13757, 675, 0, 4, 'Lightning Eel'),
 (13888, 700, 0, 4, 'Darkclaw Lobster'),
 
--- High Level Fish (300-375)
+-- High Level Fish
 (27422, 725, 0, 4, 'Barbed Gill Trout'),
 (27425, 750, 0, 4, 'Spotted Feltail'),
 (27429, 775, 0, 4, 'Zangarian Sporefish'),
@@ -260,7 +268,7 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (27438, 850, 0, 4, 'Golden Darter'),
 (27439, 875, 0, 4, 'Furious Crawdad'),
 
--- Northrend Fish (375-450)
+-- Northrend Fish
 (41800, 900, 0, 4, 'Deep Sea Monsterbelly'),
 (41801, 925, 0, 4, 'Moonglow Cuttlefish'),
 (41802, 950, 0, 4, 'Imperial Manta Ray'),
