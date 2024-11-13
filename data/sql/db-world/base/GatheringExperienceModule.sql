@@ -136,19 +136,19 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 
 INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
 -- Basic Leather
-(2934, 25, 1, 3, 'Ruined Leather Scraps'),
-(2318, 50, 1, 3, 'Light Leather'),
-(2319, 100, 100, 3, 'Medium Leather'),
-(4234, 150, 150, 3, 'Heavy Leather'),
-(4304, 200, 200, 3, 'Thick Leather'),
-(8170, 250, 250, 3, 'Rugged Leather'),
+(2934, 125, 1, 3, 'Ruined Leather Scraps'),
+(2318, 250, 1, 3, 'Light Leather'),
+(2319, 300, 100, 3, 'Medium Leather'),
+(4234, 325, 150, 3, 'Heavy Leather'),
+(4304, 375, 200, 3, 'Thick Leather'),
+(8170, 425, 250, 3, 'Rugged Leather'),
 
 -- Hides
-(783, 150, 75, 3, 'Light Hide'),
-(4232, 125, 125, 3, 'Medium Hide'),
-(4235, 175, 175, 3, 'Heavy Hide'),
-(8169, 225, 225, 3, 'Thick Hide'),
-(8171, 275, 275, 3, 'Rugged Hide'),
+(783, 200, 75, 3, 'Light Hide'),
+(4232, 275, 125, 3, 'Medium Hide'),
+(4235, 350, 175, 3, 'Heavy Hide'),
+(8169, 400, 225, 3, 'Thick Hide'),
+(8171, 450, 275, 3, 'Rugged Hide'),
 
 -- Special Leather
 (15417, 300, 300, 3, 'Devilsaur Leather'),
@@ -165,13 +165,13 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (15414, 350, 350, 3, 'Red Dragonscale'),
 (15412, 375, 375, 3, 'Green Dragonscale'),
 (25700, 375, 310, 3, 'Fel Scales'),
-(6470, 100, 100, 3, 'Deviate Scale'),
-(6471, 150, 150, 3, 'Perfect Deviate Scale'),
-(5784, 125, 125, 3, 'Slimy Murloc Scale'),
-(5785, 225, 225, 3, 'Thick Murloc Scale'),
-(7286, 175, 175, 3, 'Black Whelp Scale'),
-(7287, 200, 200, 3, 'Red Whelp Scale'),
-(8154, 250, 250, 3, 'Scorpid Scale'),
+(6470, 250, 100, 3, 'Deviate Scale'),
+(6471, 325, 150, 3, 'Perfect Deviate Scale'),
+(5784, 275, 125, 3, 'Slimy Murloc Scale'),
+(5785, 400, 225, 3, 'Thick Murloc Scale'),
+(7286, 350, 175, 3, 'Black Whelp Scale'),
+(7287, 375, 200, 3, 'Red Whelp Scale'),
+(8154, 425, 250, 3, 'Scorpid Scale'),
 (15408, 300, 300, 3, 'Heavy Scorpid Scale'),
 (29539, 400, 400, 3, 'Cobra Scales'),
 (29547, 400, 400, 3, 'Wind Scales'),
@@ -189,58 +189,58 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
--- Starter Herbs (1-50)
-(2447, 25, 1, 2, 'Peacebloom'),
-(765, 25, 1, 2, 'Silverleaf'),
-(2449, 50, 1, 2, 'Earthroot'),
+-- Starter Zones & Low Level
+(765, 225, 1, 2, 'Silverleaf'),
+(2447, 225, 1, 2, 'Peacebloom'),
+(2449, 250, 1, 2, 'Earthroot'),
 
--- Low Level Herbs (50-125)
-(785, 75, 50, 2, 'Mageroyal'),
-(2450, 75, 50, 2, 'Briarthorn'),
-(2452, 100, 75, 2, 'Swiftthistle'),
-(2453, 100, 75, 2, 'Bruiseweed'),
-(3355, 125, 100, 2, 'Wild Steelbloom'),
-(3356, 125, 100, 2, 'Kingsblood'),
-(3357, 150, 125, 2, 'Liferoot'),
+-- Low-Mid Level
+(785, 300, 50, 2, 'Mageroyal'),
+(2450, 300, 50, 2, 'Briarthorn'),
+(2452, 325, 75, 2, 'Swiftthistle'),
+(2453, 325, 75, 2, 'Bruiseweed'),
+(3355, 350, 100, 2, 'Wild Steelbloom'),
+(3356, 350, 100, 2, 'Kingsblood'),
 
--- Mid Level Herbs (125-225)
-(3358, 175, 150, 2, 'Khadgar''s Whisker'),
-(3369, 175, 150, 2, 'Grave Moss'),
-(3818, 200, 175, 2, 'Fadeleaf'),
-(3821, 200, 175, 2, 'Goldthorn'),
-(3819, 225, 200, 2, 'Dragon''s Teeth'),
-(8836, 250, 225, 2, 'Arthas'' Tears'),
-(8838, 250, 225, 2, 'Sungrass'),
-(8839, 275, 225, 2, 'Blindweed'),
-(8845, 275, 225, 2, 'Ghost Mushroom'),
-(8846, 275, 225, 2, 'Gromsblood'),
+-- Mid Level
+(3357, 375, 125, 2, 'Liferoot'),
+(3358, 400, 150, 2, 'Khadgar\'s Whisker'),
+(3369, 400, 150, 2, 'Grave Moss'),
+(3818, 425, 175, 2, 'Fadeleaf'),
+(3819, 450, 200, 2, 'Dragon\'s Teeth'),
+(3821, 425, 175, 2, 'Goldthorn'),
 
--- High Level Herbs (225-300)
-(13463, 300, 250, 2, 'Dreamfoil'),
-(13464, 300, 250, 2, 'Golden Sansam'),
-(13465, 325, 275, 2, 'Mountain Silversage'),
-(13466, 325, 275, 2, 'Sorrowmoss'),
-(13467, 350, 300, 2, 'Icecap'),
-(13468, 350, 300, 2, 'Black Lotus'),
+-- High Level Classic
+(8836, 475, 225, 2, 'Arthas\' Tears'),
+(8838, 475, 225, 2, 'Sungrass'),
+(8839, 475, 225, 2, 'Blindweed'),
+(8845, 475, 225, 2, 'Ghost Mushroom'),
+(8846, 475, 225, 2, 'Gromsblood'),
+(13463, 500, 250, 2, 'Dreamfoil'),
+(13464, 500, 250, 2, 'Golden Sansam'),
+(13465, 525, 275, 2, 'Mountain Silversage'),
+(13466, 525, 275, 2, 'Sorrowmoss'),
+(13467, 550, 300, 2, 'Icecap'),
+(13468, 550, 300, 2, 'Black Lotus'),
 
--- Outland Herbs (300-375)
-(22785, 375, 300, 2, 'Felweed'),
-(22786, 400, 325, 2, 'Dreaming Glory'),
-(22787, 425, 350, 2, 'Ragveil'),
-(22789, 450, 375, 2, 'Terocone'),
-(22790, 475, 375, 2, 'Ancient Lichen'),
-(22791, 475, 375, 2, 'Netherbloom'),
-(22792, 475, 375, 2, 'Nightmare Vine'),
-(22793, 500, 375, 2, 'Mana Thistle'),
+-- Outland Herbs
+(22785, 575, 300, 2, 'Felweed'),
+(22786, 600, 325, 2, 'Dreaming Glory'),
+(22787, 625, 350, 2, 'Ragveil'),
+(22789, 650, 375, 2, 'Terocone'),
+(22790, 675, 375, 2, 'Ancient Lichen'),
+(22791, 675, 375, 2, 'Netherbloom'),
+(22792, 675, 375, 2, 'Nightmare Vine'),
+(22793, 700, 375, 2, 'Mana Thistle'),
 
--- Northrend Herbs (375-450)
-(36901, 525, 375, 2, 'Goldclover'),
-(36903, 550, 400, 2, 'Adder''s Tongue'),
-(36904, 575, 425, 2, 'Tiger Lily'),
-(36905, 600, 435, 2, 'Lichbloom'),
-(36906, 625, 435, 2, 'Icethorn'),
-(36907, 650, 450, 2, 'Talandra''s Rose'),
-(36908, 675, 450, 2, 'Frost Lotus');
+-- Northrend Herbs
+(36901, 725, 375, 2, 'Goldclover'),
+(36903, 750, 400, 2, 'Adder\'s Tongue'),
+(36904, 775, 425, 2, 'Tiger Lily'),
+(36905, 800, 435, 2, 'Lichbloom'),
+(36906, 825, 435, 2, 'Icethorn'),
+(36907, 850, 450, 2, 'Talandra\'s Rose'),
+(36908, 875, 450, 2, 'Frost Lotus');
 
 
 -- ----------------------------------------
@@ -248,43 +248,42 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
--- Starter Fish (1-25)
+-- Basic Fish
 (6291, 50, 0, 4, 'Raw Brilliant Smallfish'),
-
--- Low Level Fish (25-150)
 (6289, 100, 0, 4, 'Raw Longjaw Mud Snapper'),
-(6317, 100, 0, 4, 'Raw Loch Frenzy'),
 (6308, 125, 0, 4, 'Raw Bristle Whisker Catfish'),
 (6358, 150, 0, 4, 'Oily Blackmouth'),
-(12238, 150, 0, 4, 'Darkshore Grouper'),
 (6359, 175, 0, 4, 'Firefin Snapper'),
 (6361, 200, 0, 4, 'Raw Rainbow Fin Albacore'),
 (6362, 225, 0, 4, 'Raw Rockscale Cod'),
-
--- Mid Level Fish (150-300)
-(21071, 250, 0, 4, 'Raw Sagefish'),
-(21153, 275, 0, 4, 'Raw Greater Sagefish'),
 (4603, 300, 0, 4, 'Raw Spotted Yellowtail'),
-(6522, 325, 0, 4, 'Deviate Fish'),
-(13422, 350, 0, 4, 'Stonescale Eel'),
+(6317, 100, 0, 4, 'Raw Loch Frenzy'),
+
+-- Mid Level Fish
+(12238, 150, 0, 4, 'Darkshore Grouper'),
 (13757, 375, 0, 4, 'Lightning Eel'),
 (13888, 400, 0, 4, 'Darkclaw Lobster'),
+(6522, 325, 0, 4, 'Deviate Fish'),
+(8365, 250, 0, 4, 'Raw Mithril Head Trout'),
 
--- High Level Fish (300-375)
+-- High Level Classic Fish
+(13422, 350, 0, 4, 'Stonescale Eel'),
+
+-- Outland Fish
 (27422, 425, 0, 4, 'Barbed Gill Trout'),
 (27425, 450, 0, 4, 'Spotted Feltail'),
 (27429, 475, 0, 4, 'Zangarian Sporefish'),
-(27435, 500, 0, 4, 'Figluster''s Mudfish'),
+(27435, 500, 0, 4, 'Figluster\'s Mudfish'),
 (27437, 525, 0, 4, 'Icefin Bluefish'),
 (27438, 550, 0, 4, 'Golden Darter'),
 (27439, 575, 0, 4, 'Furious Crawdad'),
 
--- Northrend Fish (375-450)
+-- Northrend Fish
 (41800, 600, 0, 4, 'Deep Sea Monsterbelly'),
 (41801, 625, 0, 4, 'Moonglow Cuttlefish'),
 (41802, 650, 0, 4, 'Imperial Manta Ray'),
 (41803, 675, 0, 4, 'Musselback Sculpin'),
-(41805, 700, 0, 4, 'Borean Man O'' War'),
+(41805, 700, 0, 4, 'Borean Man O\' War'),
 (41806, 725, 0, 4, 'Dragonfin Angelfish'),
 (41807, 750, 0, 4, 'Glacial Salmon'),
 (41808, 775, 0, 4, 'Nettlefish'),
@@ -298,46 +297,49 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 -- Rarity Multipliers
 -- ----------------------------------------
 
-INSERT IGNORE INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
--- Mining Rares
-(7911, 1.5),   -- Truesilver Ore
-(10620, 1.5),  -- Thorium Ore
-(11382, 2.0),  -- Blood of the Mountain
-(7910, 2.0),   -- Star Ruby
-(12364, 2.0),  -- Huge Emerald
-(12800, 2.0),  -- Azerothian Diamond
-(12363, 2.5),  -- Arcane Crystal
-(22203, 2.0),  -- Large Obsidian Shard
-(23426, 2.0),  -- Khorium Ore
-(36910, 2.0),  -- Titanium Ore
-
--- Herbalism Rares
-(13463, 1.5),  -- Dreamfoil
-(8836, 1.5),   -- Arthas' Tears
-(8838, 1.5),   -- Sungrass
-(13467, 2.0),  -- Icecap
-(8845, 2.5),   -- Ghost Mushroom
-(13468, 3.0),  -- Black Lotus
-(22793, 2.0),  -- Mana Thistle
-(36908, 2.5),  -- Frost Lotus
-
--- Skinning Rares
-(15417, 1.5),  -- Devilsaur Leather
-(15416, 1.5),  -- Black Dragonscale
-(44128, 1.5),  -- Arctic Fur
-(15414, 1.5),  -- Red Dragonscale
-(15419, 2.5),  -- Pristine Hide of the Beast
-(15410, 3.0),  -- Scale of Onyxia
-(15423, 2.5),  -- Brilliant Chromatic Scale
-(25707, 2.0),  -- Fel Hide
-
--- Fishing Rares
-(13757, 1.5),  -- Lightning Eel
-(13888, 1.5),  -- Darkclaw Lobster
-(41802, 2.0),  -- Imperial Manta Ray
-(41807, 2.0),  -- Glacial Salmon
-(41813, 2.0),  -- Succulent Orca Steak
-(6522, 2.0);   -- Deviate Fish
+INSERT IGNORE INTO `gathering_experience_rarity` (item_id, multiplier, name) VALUES
+(6522, 2, 'Deviate Fish'),
+(7910, 2, 'Star Ruby'),
+(7911, 1.5, 'Truesilver Ore'),
+(8836, 1.5, 'Arthas\' Tears'),
+(8838, 1.5, 'Sungrass'),
+(8845, 2.5, 'Ghost Mushroom'),
+(10620, 1.5, 'Thorium Ore'),
+(11370, 2, 'Dark Iron Ore'),
+(11382, 2, 'Blood of the Mountain'),
+(12238, 1.5, 'Darkshore Grouper'),
+(12363, 2.5, 'Arcane Crystal'),
+(12364, 2, 'Huge Emerald'),
+(12800, 2, 'Azerothian Diamond'),
+(13463, 1.5, 'Dreamfoil'),
+(13464, 1.5, 'Golden Sansam'),
+(13467, 2, 'Icecap'),
+(13468, 3, 'Black Lotus'),
+(13757, 1.5, 'Lightning Eel'),
+(13888, 1.5, 'Darkclaw Lobster'),
+(15410, 3, 'Scale of Onyxia'),
+(15412, 1.5, 'Green Dragonscale'),
+(15414, 1.5, 'Red Dragonscale'),
+(15415, 1.5, 'Blue Dragonscale'),
+(15416, 1.5, 'Black Dragonscale'),
+(15417, 1.5, 'Devilsaur Leather'),
+(15419, 2.5, 'Pristine Hide of the Beast'),
+(15423, 2.5, 'Brilliant Chromatic Scale'),
+(17012, 1.5, 'Core Leather'),
+(22203, 2, 'Large Obsidian Shard'),
+(22790, 2, 'Ancient Lichen'),
+(22793, 2, 'Mana Thistle'),
+(23426, 2, 'Khorium Ore'),
+(25700, 1.5, 'Fel Scales'),
+(25707, 2, 'Fel Hide'),
+(27438, 1.5, 'Golden Darter'),
+(36908, 2.5, 'Frost Lotus'),
+(36910, 2, 'Titanium Ore'),
+(41802, 2, 'Imperial Manta Ray'),
+(41807, 2, 'Glacial Salmon'),
+(41812, 2, 'Giant Darkwater Clam'),
+(41813, 2, 'Succulent Orca Steak'),
+(44128, 1.5, 'Arctic Fur');
 
 
 -- ----------------------------------------
@@ -345,52 +347,21 @@ INSERT IGNORE INTO `gathering_experience_rarity` (item_id, multiplier) VALUES
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALUES
--- Cities (1.25x cap)
-(1519, 1.25, 'Stormwind City'),
-(1537, 1.25, 'Ironforge'),
-(1657, 1.25, 'Darnassus'),
-(1637, 1.25, 'Orgrimmar'),
-(1638, 1.25, 'Thunder Bluff'),
-(1497, 1.25, 'Undercity'),
-(3557, 1.25, 'The Exodar'),
-(3487, 1.25, 'Silvermoon City'),
-(3703, 1.25, 'Shattrath City'),
-(4395, 1.25, 'Dalaran'),
-
--- Vanilla Starting Zones (1.0x - 1.1x)
--- Cities (1.25x cap)
-(1519, 1.25, 'Stormwind City'),
-(1537, 1.25, 'Ironforge'),
-(1657, 1.25, 'Darnassus'),
-(1637, 1.25, 'Orgrimmar'),
-(1638, 1.25, 'Thunder Bluff'),
-(1497, 1.25, 'Undercity'),
-(3557, 1.25, 'The Exodar'),
-(3487, 1.25, 'Silvermoon City'),
-(3703, 1.25, 'Shattrath City'),
-(4395, 1.25, 'Dalaran'),
-
--- Vanilla Starting Zones (1.0x - 1.1x)
-(1, 1.0, 'Dun Morogh'),
+(1, 1, 'Dun Morogh'),
 (3, 1.3, 'Badlands'),
 (4, 1.4, 'Blasted Lands'),
 (8, 1.3, 'Swamp of Sorrows'),
 (10, 1.2, 'Ashenvale'),
 (11, 1.5, 'Wetlands'),
-(3, 1.3, 'Badlands'),
-(4, 1.4, 'Blasted Lands'),
-(8, 1.3, 'Swamp of Sorrows'),
-(10, 1.2, 'Ashenvale'),
-(11, 1.5, 'Wetlands'),
-(12, 1.0, 'Elwynn Forest'),
-(14, 1.0, 'Durotar'),
+(12, 1, 'Elwynn Forest'),
+(14, 1, 'Durotar'),
 (15, 1.3, 'Dustwallow Marsh'),
 (16, 1.4, 'Azshara'),
 (17, 1.1, 'The Barrens'),
 (28, 1.4, 'Western Plaguelands'),
 (33, 1.3, 'Stranglethorn Vale'),
 (38, 1.2, 'Loch Modan'),
-(40, 1.0, 'Westfall'),
+(40, 1, 'Westfall'),
 (41, 1.5, 'Deadwind Pass'),
 (44, 1.2, 'Redridge Mountains'),
 (45, 1.5, 'Arathi Highlands'),
@@ -399,32 +370,13 @@ INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALU
 (51, 1.4, 'Searing Gorge'),
 (66, 1.4, 'Dragonblight'),
 (67, 1.5, 'The Storm Peaks'),
-(15, 1.3, 'Dustwallow Marsh'),
-(16, 1.4, 'Azshara'),
-(17, 1.1, 'The Barrens'),
-(28, 1.4, 'Western Plaguelands'),
-(33, 1.3, 'Stranglethorn Vale'),
-(38, 1.2, 'Loch Modan'),
-(40, 1.0, 'Westfall'),
-(41, 1.5, 'Deadwind Pass'),
-(44, 1.2, 'Redridge Mountains'),
-(45, 1.5, 'Arathi Highlands'),
-(46, 1.5, 'Burning Steppes'),
-(47, 1.2, 'Duskwood'),
-(51, 1.4, 'Searing Gorge'),
-(66, 1.4, 'Dragonblight'),
-(67, 1.5, 'The Storm Peaks'),
-(85, 1.0, 'Tirisfal Glades'),
+(85, 1, 'Tirisfal Glades'),
 (130, 1.2, 'Silverpine Forest'),
 (139, 1.4, 'Eastern Plaguelands'),
-(130, 1.2, 'Silverpine Forest'),
-(139, 1.4, 'Eastern Plaguelands'),
-(141, 1.0, 'Teldrassil'),
+(141, 1, 'Teldrassil'),
 (148, 1.1, 'Darkshore'),
 (210, 1.5, 'Icecrown'),
-(148, 1.1, 'Darkshore'),
-(210, 1.5, 'Icecrown'),
-(215, 1.0, 'Mulgore'),
+(215, 1, 'Mulgore'),
 (267, 1.2, 'Hillsbrad Foothills'),
 (331, 1.3, 'Ashenvale'),
 (357, 1.3, 'Feralas'),
@@ -438,43 +390,26 @@ INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALU
 (495, 1.4, 'Howling Fjord'),
 (618, 1.5, 'Winterspring'),
 (1377, 1.4, 'Silithus'),
-
--- Outland Zones (1.3x - 1.5x)
-(267, 1.2, 'Hillsbrad Foothills'),
-(331, 1.3, 'Ashenvale'),
-(357, 1.3, 'Feralas'),
-(361, 1.3, 'Felwood'),
-(394, 1.4, 'Grizzly Hills'),
-(400, 1.3, 'Thousand Needles'),
-(405, 1.3, 'Desolace'),
-(406, 1.2, 'Stonetalon Mountains'),
-(440, 1.3, 'Tanaris'),
-(490, 1.4, 'Un\'Goro Crater'),
-(495, 1.4, 'Howling Fjord'),
-(618, 1.5, 'Winterspring'),
-(1377, 1.4, 'Silithus'),
-
--- Outland Zones (1.3x - 1.5x)
-(3430, 1.0, 'Eversong Woods'),
+(1497, 1.25, 'Undercity'),
+(1519, 1.25, 'Stormwind City'),
+(1537, 1.25, 'Ironforge'),
+(1637, 1.25, 'Orgrimmar'),
+(1638, 1.25, 'Thunder Bluff'),
+(1657, 1.25, 'Darnassus'),
+(3430, 1, 'Eversong Woods'),
 (3483, 1.3, 'Hellfire Peninsula'),
+(3487, 1.25, 'Silvermoon City'),
 (3518, 1.3, 'Nagrand'),
 (3519, 1.4, 'Terokkar Forest'),
 (3520, 1.4, 'Shadowmoon Valley'),
 (3521, 1.4, 'Zangarmarsh'),
 (3522, 1.5, 'Blade\'s Edge Mountains'),
-(3524, 1.0, 'Azuremyst Isle'),
+(3524, 1, 'Azuremyst Isle'),
 (3525, 1.5, 'Netherstorm'),
-(3483, 1.3, 'Hellfire Peninsula'),
-(3518, 1.3, 'Nagrand'),
-(3519, 1.4, 'Terokkar Forest'),
-(3520, 1.4, 'Shadowmoon Valley'),
-(3521, 1.4, 'Zangarmarsh'),
-(3522, 1.5, 'Blade\'s Edge Mountains'),
-(3524, 1.0, 'Azuremyst Isle'),
-(3525, 1.5, 'Netherstorm'),
-
--- Northrend Zones (1.3x - 1.5x)
 (3537, 1.3, 'Borean Tundra'),
+(3557, 1.25, 'The Exodar'),
+(3703, 1.25, 'Shattrath City'),
 (3711, 1.4, 'Sholazar Basin'),
 (4197, 1.5, 'Wintergrasp'),
+(4395, 1.25, 'Dalaran'),
 (4742, 1.5, 'Hrothgar\'s Landing');
