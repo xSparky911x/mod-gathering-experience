@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS `gathering_experience` (
 CREATE TABLE IF NOT EXISTS `gathering_experience_rarity` (
     `item_id` INT UNSIGNED NOT NULL,
     `multiplier` FLOAT NOT NULL DEFAULT 1.0,
+    `name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT 'Item name for reference',
     PRIMARY KEY (`item_id`),
     FOREIGN KEY (`item_id`) REFERENCES `gathering_experience` (`item_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
