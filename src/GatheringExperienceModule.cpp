@@ -326,39 +326,55 @@ public:
                 skillMultiplier = 0.1f;  // Gray skill - minimal XP (too low skill)
                 skillColor = "Gray (Too Low)";
             }
-            else if (currentSkill < requiredSkill + 25)
+            else if (currentSkill < requiredSkill + TIER_SIZE/3)  // First third of tier
             {
                 skillMultiplier = 1.2f;  // Orange skill - highest XP (challenging)
                 skillColor = "Orange";
             }
-            else if (currentSkill < requiredSkill + 50)
+            else if (currentSkill < requiredSkill + (TIER_SIZE/3)*2)  // Second third of tier
             {
                 skillMultiplier = 1.0f;  // Yellow skill - normal XP (moderate)
                 skillColor = "Yellow";
             }
-            else if (currentSkill < requiredSkill + 75)
+            else if (currentSkill < requiredSkill + TIER_SIZE)  // Final third of tier
             {
                 skillMultiplier = 0.8f;  // Green skill - reduced XP (easy)
                 skillColor = "Green";
             }
             else
             {
-                skillMultiplier = 0.5f;  // Gray skill - minimal XP (trivial)
-                skillColor = "Gray (Trivial)";
+                // Basic materials (like Light/Medium Leather) should give more even when gray
+                if (requiredSkill <= 150)  // Increased to include Medium Leather tier
+                {
+                    skillMultiplier = 0.8f;  // Better reward for basic materials
+                    skillColor = "Gray (Basic Material)";
+                }
+                else
+                {
+                    skillMultiplier = 0.6f;  // Standard gray multiplier for higher-tier materials
+                    skillColor = "Gray (Trivial)";
+                }
             }
 
-            // Get level multiplier using new function
+            // Get level multiplier using same function as fishing
             float levelMultiplier = GetLevelMultiplier(player->GetLevel());
             float rarityMultiplier = std::min(1.5f, GetRarityMultiplier(itemId));
 
-            uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
+            // Calculate final XP with additive stacking like fishing
+            uint32 finalXP = static_cast<uint32>(
+                baseXP * 
+                levelMultiplier * 
+                (1.0f + // Base
+                 (skillMultiplier - 1.0f) + // Skill penalty/bonus
+                 (rarityMultiplier - 1.0f)) // Rarity bonus
+            );
 
             LOG_INFO("module.gathering", "Gathering XP Calculation:");
             LOG_INFO("module.gathering", "- Zone: {} (ID: {})", zoneName, player->GetZoneId());
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
-            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
-            LOG_INFO("module.gathering", "- Skill ({}/{}) Color: {} Multiplier: {}", currentSkill, requiredSkill, skillColor, skillMultiplier);
-            LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMultiplier);
+            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {:.2f}", player->GetLevel(), levelMultiplier);
+            LOG_INFO("module.gathering", "- Skill ({}/{}) Color: {} Multiplier: {:.2f}", currentSkill, requiredSkill, skillColor, skillMultiplier);
+            LOG_INFO("module.gathering", "- Rarity Multiplier: {:.2f}", rarityMultiplier);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
 
             return finalXP;
@@ -561,16 +577,16 @@ private:
     // Helper function for level-based multiplier
     float GetLevelMultiplier(uint8 level) const
     {
-        if (level < 20)
-            return std::max(0.2f, level / 60.0f);  // Lower minimum (0.2 instead of 0.3)
+        if (level >= GATHERING_MAX_LEVEL)  // Cap at level 80
+            return 1.5f;                   // Maximum multiplier (up from 1.0)
+        else if (level < 20)
+            return std::max(0.4f, level / 60.0f);     // 0.4 to 0.33 (better low level rewards)
         else if (level < 40)
-            return std::max(0.3f, level / 50.0f);  // Much slower scaling (50 instead of 35)
+            return std::max(0.5f, level / 50.0f);     // 0.5 to 0.8 (smoother mid-level progression)
         else if (level < 60)
-            return std::min(1.0f, level / 40.0f);  // Reduced cap for 40-60 (1.0 instead of 1.5)
-        else if (level < 70)
-            return std::min(1.25f, level / 35.0f); // Moderate scaling for 60-70
+            return std::max(0.7f, level / 45.0f);     // 0.7 to 1.33 (better high-level rewards)
         else
-            return 1.5f;                           // Max multiplier for 70+
+            return std::min(1.5f, level / 40.0f);     // Up to 1.5 for max level
     }
 
     // Helper functions for cleaner code
