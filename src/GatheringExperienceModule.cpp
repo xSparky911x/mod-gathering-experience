@@ -66,7 +66,6 @@ private:
     };
 
     std::map<uint32, GatheringItem> gatheringItems;
-    std::map<uint32, float> rarityMultipliers;
     std::map<uint32, float> zoneMultipliers;
     bool enabled;
     bool dataLoaded;
@@ -135,7 +134,6 @@ public:
             // Clear existing data
             LOG_INFO("server.loading", "Clearing existing gathering data from memory...");
             gatheringItems.clear();
-            rarityMultipliers.clear();
             zoneMultipliers.clear();
             dataLoaded = false;
 
@@ -162,19 +160,6 @@ public:
                 LOG_INFO("server.loading", "No gathering items found in database");
             }
 
-            // Load rarity multipliers
-            if (QueryResult result = WorldDatabase.Query("SELECT item_id, multiplier FROM gathering_experience_rarity"))
-            {
-                uint32 count = 0;
-                do
-                {
-                    Field* fields = result->Fetch();
-                    rarityMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
-                    count++;
-                } while (result->NextRow());
-                LOG_INFO("server.loading", "Loaded {} rarity multipliers", count);
-            }
-
             // Load zone multipliers
             if (QueryResult result = WorldDatabase.Query("SELECT zone_id, multiplier FROM gathering_experience_zones"))
             {
@@ -195,7 +180,6 @@ public:
         {
             LOG_ERROR("server.loading", "Error in LoadDataFromDB: {}", e.what());
             gatheringItems.clear();
-            rarityMultipliers.clear();
             zoneMultipliers.clear();
             dataLoaded = false;
         }
@@ -247,9 +231,6 @@ public:
             // Zone multiplier - capped lower
             float zoneMult = std::min(1.5f, GetFishingZoneMultiplier(player->GetZoneId()));
 
-            // Rarity multiplier - capped
-            float rarityMult = std::min(1.5f, GetRarityMultiplier(itemId));
-
             // City check and multiplier cap
             bool isCity = IsCityZone(player->GetZoneId());
             if (isCity)
@@ -264,8 +245,7 @@ public:
                 (1.0f + // Base
                  (skillTierMult - 1.0f) + // Skill bonus
                  progressBonus + // Progress bonus
-                 (zoneMult - 1.0f) + // Zone bonus
-                 (rarityMult - 1.0f)) * // Rarity bonus
+                 (zoneMult - 1.0f)) * // Zone bonus
                 levelPenalty
             );
             
@@ -297,10 +277,6 @@ public:
             LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {:.2f} (capped from {:.2f})", currentSkill, skillTierMult, rawSkillTierMult);
             LOG_INFO("module.gathering", "- Progress Bonus: {:.2f}", progressBonus);
             LOG_INFO("module.gathering", "- Zone Multiplier: {:.2f}", zoneMult);
-            if (rarityMult > 1.0f)
-            {
-                LOG_INFO("module.gathering", "- Rarity Multiplier: {:.2f}", rarityMult);
-            }
             LOG_INFO("module.gathering", "- Normal XP (before rested): {}", normalXP);
             LOG_INFO("module.gathering", "- Rested Bonus Applied: {}", finalXP - normalXP);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
@@ -358,15 +334,13 @@ public:
 
             // Get level multiplier using same function as fishing
             float levelMultiplier = GetLevelMultiplier(player->GetLevel());
-            float rarityMultiplier = std::min(1.5f, GetRarityMultiplier(itemId));
 
             // Calculate final XP with additive stacking like fishing
             uint32 finalXP = static_cast<uint32>(
                 baseXP * 
                 levelMultiplier * 
                 (1.0f + // Base
-                 (skillMultiplier - 1.0f) + // Skill penalty/bonus
-                 (rarityMultiplier - 1.0f)) // Rarity bonus
+                 (skillMultiplier - 1.0f)) // Skill penalty/bonus
             );
 
             LOG_INFO("module.gathering", "Gathering XP Calculation:");
@@ -374,7 +348,6 @@ public:
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
             LOG_INFO("module.gathering", "- Level ({}) Multiplier: {:.2f}", player->GetLevel(), levelMultiplier);
             LOG_INFO("module.gathering", "- Skill ({}/{}) Color: {} Multiplier: {:.2f}", currentSkill, requiredSkill, skillColor, skillMultiplier);
-            LOG_INFO("module.gathering", "- Rarity Multiplier: {:.2f}", rarityMultiplier);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
 
             return finalXP;
@@ -403,13 +376,6 @@ public:
         
         LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - Item {} not found in memory", itemId);
         return {0, 0};
-    }
-
-    // Function to apply rarity-based multipliers for special items
-    float GetRarityMultiplier(uint32 itemId)
-    {
-        auto it = rarityMultipliers.find(itemId);
-        return it != rarityMultipliers.end() ? it->second : 1.0f;
     }
 
     // Check if the item is related to gathering (mining, herbalism, skinning, or fishing)
