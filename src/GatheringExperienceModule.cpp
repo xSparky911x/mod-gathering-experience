@@ -11,7 +11,7 @@
 const uint32 GATHERING_MAX_LEVEL = 80;
 const uint32 MAX_EXPERIENCE_GAIN = 25000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
-const char* GATHERING_EXPERIENCE_VERSION = "0.4.2";
+const char* GATHERING_EXPERIENCE_VERSION = "0.4.1";
 
 enum GatheringProfessions
 {
@@ -66,6 +66,7 @@ private:
     };
 
     std::map<uint32, GatheringItem> gatheringItems;
+    std::map<uint32, float> rarityMultipliers;
     std::map<uint32, float> zoneMultipliers;
     bool enabled;
     bool dataLoaded;
@@ -134,6 +135,7 @@ public:
             // Clear existing data
             LOG_INFO("server.loading", "Clearing existing gathering data from memory...");
             gatheringItems.clear();
+            rarityMultipliers.clear();
             zoneMultipliers.clear();
             dataLoaded = false;
 
@@ -160,6 +162,19 @@ public:
                 LOG_INFO("server.loading", "No gathering items found in database");
             }
 
+            // Load rarity multipliers
+            if (QueryResult result = WorldDatabase.Query("SELECT item_id, multiplier FROM gathering_experience_rarity"))
+            {
+                uint32 count = 0;
+                do
+                {
+                    Field* fields = result->Fetch();
+                    rarityMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
+                    count++;
+                } while (result->NextRow());
+                LOG_INFO("server.loading", "Loaded {} rarity multipliers", count);
+            }
+
             // Load zone multipliers
             if (QueryResult result = WorldDatabase.Query("SELECT zone_id, multiplier FROM gathering_experience_zones"))
             {
@@ -180,6 +195,7 @@ public:
         {
             LOG_ERROR("server.loading", "Error in LoadDataFromDB: {}", e.what());
             gatheringItems.clear();
+            rarityMultipliers.clear();
             zoneMultipliers.clear();
             dataLoaded = false;
         }
@@ -200,16 +216,98 @@ public:
     // Function to calculate scaled experience based on player level and item base XP
     uint32 CalculateExperience(Player* player, uint32 baseXP, uint32 requiredSkill, uint32 currentSkill, uint32 itemId)
     {
-        if (!player)
+        if (player->GetLevel() >= GATHERING_MAX_LEVEL)
             return 0;
 
-        // For fishing items
+        float skillMultiplier = 1.0f;
+        float levelMultiplier = std::min(8.0f, std::max(0.8f, player->GetLevel() / 10.0f));
+        float rarityMultiplier = 1.0f;
+
         if (IsFishingItem(itemId))
         {
+            // Adjust base XP based on both level and skill
+            uint32 adjustedBaseXP = baseXP;
+            std::string adjustReason;
+
+            // Standard minimum XP based on skill tiers
+            if (currentSkill > 300)
+            {
+                uint32 skillBasedMin = 200;
+                if (adjustedBaseXP < skillBasedMin)
+                {
+                    adjustedBaseXP = skillBasedMin;
+                    adjustReason = "minimum for skill > 300";
+                }
+            }
+            else if (currentSkill > 150)
+            {
+                uint32 skillBasedMin = 125;
+                if (adjustedBaseXP < skillBasedMin)
+                {
+                    adjustedBaseXP = skillBasedMin;
+                    adjustReason = "minimum for skill > 150";
+                }
+            }
+            else if (currentSkill > 75)
+            {
+                uint32 skillBasedMin = 100;
+                if (adjustedBaseXP < skillBasedMin)
+                {
+                    adjustedBaseXP = skillBasedMin;
+                    adjustReason = "minimum for skill > 75";
+                }
+            }
+
+            // Add level requirement adjustments
             float levelPenalty = 1.0f;
             std::string penaltyReason;
-            std::string adjustReason;
-            uint32 adjustedBaseXP = baseXP;
+            
+            // Get recommended level for this fish/zone
+            uint32 recommendedLevel = 1;  // Default for starter areas
+            if (baseXP >= 625)  // Northrend fish
+                recommendedLevel = 60;
+            else if (baseXP >= 500)  // Outland fish
+                recommendedLevel = 50;
+            else if (baseXP >= 300)
+                recommendedLevel = 40;
+            else if (baseXP >= 200)
+                recommendedLevel = 30;
+            else if (baseXP >= 100)
+                recommendedLevel = 20;
+
+            // Calculate level difference
+            int32 levelDiff = player->GetLevel() - recommendedLevel;
+            
+            if (levelDiff < -20)  // Way too low level for area
+            {
+                levelPenalty = 0.1f;  // 90% reduction
+                penaltyReason = fmt::format("extremely reduced (level {} << {})", 
+                    player->GetLevel(), recommendedLevel);
+            }
+            else if (levelDiff < -10)  // Moderately too low
+            {
+                levelPenalty = 0.25f;  // 75% reduction
+                penaltyReason = fmt::format("severely reduced (level {} < {})", 
+                    player->GetLevel(), recommendedLevel);
+            }
+            else if (levelDiff > 20)  // Way too high level for area
+            {
+                levelPenalty = 0.05f;  // 95% reduction
+                penaltyReason = fmt::format("heavily reduced (level {} >> {})", 
+                    player->GetLevel(), recommendedLevel);
+            }
+            else if (levelDiff > 10)  // Moderately too high
+            {
+                levelPenalty = 0.5f;  // 50% reduction
+                penaltyReason = fmt::format("slightly reduced (level {} > {})", 
+                    player->GetLevel(), recommendedLevel);
+            }
+
+            float rawSkillTierMult = GetFishingTierMultiplier(currentSkill);
+            float skillTierMult = std::min(1.2f, rawSkillTierMult);
+            float progressBonus = std::min(0.3f, currentSkill / 450.0f);
+            float zoneMult = GetFishingZoneMultiplier(player->GetZoneId());
+            float rarityMult = GetRarityMultiplier(itemId);
 
             // Get zone name for logging
             std::string zoneName = "Unknown";
@@ -218,40 +316,16 @@ public:
                 zoneName = area->area_name[0];
             }
 
-            // Get level multiplier using new function
-            float levelMultiplier = GetFishingLevelMultiplier(player->GetLevel(), currentSkill);
-
-            // Get skill tier multiplier
-            float rawSkillTierMult = GetFishingTierMultiplier(currentSkill);
-            float skillTierMult = std::min(1.2f, rawSkillTierMult);
-
-            // Progress bonus - scaled and capped
-            float progressBonus = CalculateProgressBonus(currentSkill);
-
-            // Zone multiplier - capped lower
-            float zoneMult = std::min(1.5f, GetFishingZoneMultiplier(player->GetZoneId()));
-
-            // City check and multiplier cap
             bool isCity = IsCityZone(player->GetZoneId());
             if (isCity)
             {
-                zoneMult = std::min(1.25f, zoneMult);
+                zoneMult = std::min(1.5f, zoneMult);
             }
 
-            // Calculate final XP with additive stacking of bonuses
-            uint32 normalXP = static_cast<uint32>(
-                baseXP * 
-                levelMultiplier * 
-                (1.0f + // Base
-                 (skillTierMult - 1.0f) + // Skill bonus
-                 progressBonus + // Progress bonus
-                 (zoneMult - 1.0f)) * // Zone bonus
-                levelPenalty
-            );
-            
+            uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult * levelPenalty * rarityMult);
             uint32 finalXP = normalXP;
 
-            // Apply rested bonus if available
+            // Check if player has any rested XP available
             if (player->GetRestBonus() > 0)
             {
                 uint32 restedXP = player->GetXPRestBonus(normalXP);
@@ -261,7 +335,6 @@ public:
                 player->SetRestBonus(currentRestBonus - (float(restedXP) / 2.0f));
             }
 
-            // Detailed logging
             LOG_INFO("module.gathering", "Fishing XP Calculation:");
             LOG_INFO("module.gathering", "- Zone: {} (ID: {}) {}", zoneName, player->GetZoneId(), isCity ? "[City]" : "");
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
@@ -269,14 +342,18 @@ public:
             {
                 LOG_INFO("module.gathering", "- Adjusted Base XP: {} ({})", adjustedBaseXP, adjustReason);
             }
-            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {:.2f}", player->GetLevel(), levelMultiplier);
+            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
             if (levelPenalty < 1.0f)
             {
-                LOG_INFO("module.gathering", "- Level Penalty: {:.2f} ({})", levelPenalty, penaltyReason);
+                LOG_INFO("module.gathering", "- Level Penalty: {} ({})", levelPenalty, penaltyReason);
             }
-            LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {:.2f} (capped from {:.2f})", currentSkill, skillTierMult, rawSkillTierMult);
-            LOG_INFO("module.gathering", "- Progress Bonus: {:.2f}", progressBonus);
-            LOG_INFO("module.gathering", "- Zone Multiplier: {:.2f}", zoneMult);
+            LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {} (capped from {})", currentSkill, skillTierMult, rawSkillTierMult);
+            LOG_INFO("module.gathering", "- Progress Bonus: {}", progressBonus);
+            LOG_INFO("module.gathering", "- Zone Multiplier: {}", zoneMult);
+            if (rarityMult > 1.0f)
+            {
+                LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMult);
+            }
             LOG_INFO("module.gathering", "- Normal XP (before rested): {}", normalXP);
             LOG_INFO("module.gathering", "- Rested Bonus Applied: {}", finalXP - normalXP);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
@@ -292,62 +369,42 @@ public:
                 zoneName = area->area_name[0];
             }
 
-            // Initialize variables at the start
-            float skillMultiplier = 0.0f;
-            std::string skillColor;
-
             // Skill level multiplier for non-fishing gathering
+            std::string skillColor;
             if (currentSkill < requiredSkill)
             {
                 skillMultiplier = 0.1f;  // Gray skill - minimal XP (too low skill)
                 skillColor = "Gray (Too Low)";
             }
-            else if (currentSkill < requiredSkill + TIER_SIZE/3)  // First third of tier
+            else if (currentSkill < requiredSkill + 25)
             {
                 skillMultiplier = 1.2f;  // Orange skill - highest XP (challenging)
                 skillColor = "Orange";
             }
-            else if (currentSkill < requiredSkill + (TIER_SIZE/3)*2)  // Second third of tier
+            else if (currentSkill < requiredSkill + 50)
             {
                 skillMultiplier = 1.0f;  // Yellow skill - normal XP (moderate)
                 skillColor = "Yellow";
             }
-            else if (currentSkill < requiredSkill + TIER_SIZE)  // Final third of tier
+            else if (currentSkill < requiredSkill + 75)
             {
                 skillMultiplier = 0.8f;  // Green skill - reduced XP (easy)
                 skillColor = "Green";
             }
             else
             {
-                // Basic materials (like Light/Medium Leather) should give more even when gray
-                if (requiredSkill <= 150)  // Increased to include Medium Leather tier
-                {
-                    skillMultiplier = 0.8f;  // Better reward for basic materials
-                    skillColor = "Gray (Basic Material)";
-                }
-                else
-                {
-                    skillMultiplier = 0.6f;  // Standard gray multiplier for higher-tier materials
-                    skillColor = "Gray (Trivial)";
-                }
+                skillMultiplier = 0.5f;  // Gray skill - minimal XP (trivial)
+                skillColor = "Gray (Trivial)";
             }
 
-            // Get level multiplier using same function as fishing
-            float levelMultiplier = GetLevelMultiplier(player->GetLevel(), currentSkill);
-
-            // Calculate final XP with additive stacking like fishing
-            uint32 finalXP = static_cast<uint32>(
-                baseXP * 
-                levelMultiplier * 
-                (1.0f + // Base
-                 (skillMultiplier - 1.0f)) // Skill penalty/bonus
-            );
+            uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
 
             LOG_INFO("module.gathering", "Gathering XP Calculation:");
             LOG_INFO("module.gathering", "- Zone: {} (ID: {})", zoneName, player->GetZoneId());
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
-            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {:.2f}", player->GetLevel(), levelMultiplier);
-            LOG_INFO("module.gathering", "- Skill ({}/{}) Color: {} Multiplier: {:.2f}", currentSkill, requiredSkill, skillColor, skillMultiplier);
+            LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
+            LOG_INFO("module.gathering", "- Skill ({}/{}) Color: {} Multiplier: {}", currentSkill, requiredSkill, skillColor, skillMultiplier);
+            LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMultiplier);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
 
             return finalXP;
@@ -376,6 +433,13 @@ public:
         
         LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - Item {} not found in memory", itemId);
         return {0, 0};
+    }
+
+    // Function to apply rarity-based multipliers for special items
+    float GetRarityMultiplier(uint32 itemId)
+    {
+        auto it = rarityMultipliers.find(itemId);
+        return it != rarityMultipliers.end() ? it->second : 1.0f;
     }
 
     // Check if the item is related to gathering (mining, herbalism, skinning, or fishing)
@@ -540,49 +604,13 @@ public:
     bool IsFishingEnabled() const { return fishingEnabled; }
 
 private:
-    // Helper function for level-based multiplier
-    float GetLevelMultiplier(uint8 playerLevel, uint32 currentSkill) const
-    {
-        // No XP at max level
-        if (playerLevel >= GATHERING_MAX_LEVEL)
-            return 0.0f;
-
-        // Base multiplier starts at 0.8 to keep below mob XP
-        float multiplier = 0.8f;
-
-        // Calculate level difference from expected zone level
-        int levelDiff = playerLevel - (currentSkill / 5);
-
-        if (levelDiff > 5)  // Player is higher level than expected
-        {
-            if (playerLevel >= 60)  // Outland/Northrend levels
-            {
-                multiplier = std::min(2.0f, 0.8f + (0.02f * playerLevel));
-            }
-            else if (playerLevel >= 30)  // Mid levels
-            {
-                multiplier = std::min(1.5f, 0.8f + (0.015f * playerLevel));
-            }
-            else  // Low levels
-            {
-                multiplier = std::min(1.0f, 0.8f + (0.01f * playerLevel));
-            }
-        }
-        else if (levelDiff < -5)  // Player is lower level than expected
-        {
-            // Reduce multiplier by 10% for each level below, minimum 0.4
-            multiplier = std::max(0.4f, 0.8f - (0.1f * (-levelDiff - 5)));
-        }
-
-        return multiplier;
-    }
-
     // Helper functions for cleaner code
     float GetFishingTierMultiplier(uint32 currentSkill) const
     {
         float tierMultiplier;
+        // Adjusted multipliers to give ~400 XP with zone multiplier of 1.0
         if (currentSkill <= TIER_1_MAX)
-            tierMultiplier = 1.0f;        // Beginner tier
+            tierMultiplier = 1.0f;        // Beginner tier (starter areas) - 400 * 1.0 * 1.0 = 400 XP
         else if (currentSkill <= TIER_2_MAX)
             tierMultiplier = 1.1f;        // Apprentice tier
         else if (currentSkill <= TIER_3_MAX)
@@ -598,7 +626,8 @@ private:
 
     float CalculateProgressBonus(uint32 currentSkill)
     {
-        return std::min(0.2f, currentSkill / 500.0f);  // Capped at 0.2 (20%)
+        // Provide a more meaningful bonus at low levels
+        return std::max(0.1f, currentSkill / 300.0f);  // Minimum 0.1 bonus
     }
 
     void LogXPCalculation(uint32 baseXP, float skillTierMult, float progressBonus, 
@@ -660,55 +689,6 @@ private:
         WorldDatabase.Execute("UPDATE gathering_experience_settings SET enabled = {} WHERE profession = '{}'",
             enabled ? 1 : 0, profession);
     }
-
-    float GetFishingLevelMultiplier(uint8 playerLevel, uint32 currentSkill) const
-    {
-        if (playerLevel >= GATHERING_MAX_LEVEL)
-            return 0.0f;
-
-        // Base multiplier starts at 1.0
-        float multiplier = 1.0f;
-
-        // Calculate level-based bonus with stronger scaling for higher levels
-        float levelBonus;
-        if (playerLevel >= 60)  // Outland/Northrend levels
-        {
-            levelBonus = 2.0f + ((playerLevel - 60) * 0.1f);  // 2.0 at 60, up to 3.9 at 79
-        }
-        else if (playerLevel >= 30)  // Mid levels
-        {
-            levelBonus = 1.5f + ((playerLevel - 30) * 0.017f);  // 1.5 at 30, up to 2.0 at 59
-        }
-        else  // Low levels
-        {
-            levelBonus = 1.5f;  // Flat 1.5x for low levels
-        }
-        
-        // Skill vs Level check
-        uint32 expectedLevel = currentSkill / 5;
-        float levelDiff = static_cast<float>(expectedLevel) - playerLevel;
-        
-        if (levelDiff > 0)
-        {
-            // Fishing above level - reduce by 5% per level, minimum 1.0
-            multiplier = std::max(1.0f, levelBonus - (0.05f * levelDiff));
-        }
-        else
-        {
-            // Fishing at or below level - apply level bonus
-            multiplier = levelBonus;
-        }
-
-        // Add more detailed debug logging
-        LOG_DEBUG("module.gathering", "Fishing Level Multiplier Calculation:");
-        LOG_DEBUG("module.gathering", "- Player Level: {}", playerLevel);
-        LOG_DEBUG("module.gathering", "- Expected Level: {}", expectedLevel);
-        LOG_DEBUG("module.gathering", "- Level Difference: {}", levelDiff);
-        LOG_DEBUG("module.gathering", "- Base Level Bonus: {:.2f}", levelBonus);
-        LOG_DEBUG("module.gathering", "- Final Multiplier: {:.2f}", multiplier);
-
-        return multiplier;
-    }
 };
 
 // Initialize the static member
@@ -767,24 +747,16 @@ public:
 
     static bool HandleGatheringAddCommand(ChatHandler* handler, const char* args)
     {
-        char* itemIdStr;
-        char* baseXPStr;
-        char* reqSkillStr;
-        char* professionStr;
-        char* nameStr;
-
-        // Extract the first 4 parameters
-        itemIdStr = strtok((char*)args, " ");
-        baseXPStr = strtok(nullptr, " ");
-        reqSkillStr = strtok(nullptr, " ");
-        professionStr = strtok(nullptr, " ");
-        
-        // Get the rest of the string for the name (after the profession)
-        nameStr = strtok(nullptr, "\n");
+        char* itemIdStr = strtok((char*)args, " ");
+        char* baseXPStr = strtok(nullptr, " ");
+        char* reqSkillStr = strtok(nullptr, " ");
+        char* professionStr = strtok(nullptr, " ");
+        char* nameStr = strtok(nullptr, "\n");
 
         if (!itemIdStr || !baseXPStr || !reqSkillStr || !professionStr || !nameStr)
         {
-            handler->SendSysMessage("Usage: .gathering add <itemId> <baseXP> <requiredSkill> <profession> \"<name>\"");
+            handler->SendSysMessage("Usage: .gathering add <itemId> <baseXP> <requiredSkill> <profession> <name>");
+            handler->SendSysMessage("Professions: Mining, Herbalism, Skinning, Fishing");
             return false;
         }
 
@@ -792,16 +764,6 @@ public:
         uint32 baseXP = atoi(baseXPStr);
         uint32 reqSkill = atoi(reqSkillStr);
         std::string profName = professionStr;
-        std::string itemName = nameStr;
-
-        // Clean up the name (remove quotes if present)
-        if (!itemName.empty())
-        {
-            if (itemName[0] == '"')
-                itemName = itemName.substr(1);
-            if (!itemName.empty() && itemName[itemName.length()-1] == '"')
-                itemName = itemName.substr(0, itemName.length()-1);
-        }
 
         uint8 professionId = GetProfessionIdByName(profName);
         if (professionId == 0)
@@ -812,7 +774,7 @@ public:
         }
 
         WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) VALUES ({}, {}, {}, {}, '{}')",
-            itemId, baseXP, reqSkill, professionId, itemName);
+            itemId, baseXP, reqSkill, professionId, nameStr);
 
         if (!GatheringExperienceModule::instance)
         {
@@ -821,8 +783,7 @@ public:
         }
 
         GatheringExperienceModule::instance->LoadDataFromDB();
-        handler->PSendSysMessage("Added gathering item {} ({}) to database for profession {} and reloaded data.", 
-            itemId, itemName, profName);
+        handler->PSendSysMessage("Added gathering item {} to database for profession {} and reloaded data.", itemId, profName);
         return true;
     }
 
@@ -850,10 +811,6 @@ public:
             return false;
         }
 
-        // First remove from rarity table if it exists
-        WorldDatabase.DirectExecute("DELETE FROM gathering_experience_rarity WHERE item_id = {}", itemId);
-        
-        // Then remove from main table
         WorldDatabase.DirectExecute("DELETE FROM gathering_experience WHERE item_id = {}", itemId);
 
         if (!GatheringExperienceModule::instance)
@@ -869,68 +826,38 @@ public:
 
     static bool HandleGatheringModifyCommand(ChatHandler* handler, const char* args)
     {
-        char* itemIdStr;
-        char* fieldStr;
-        char* valueStr;
+        char* itemIdStr = strtok((char*)args, " ");
+        char* fieldStr = strtok(nullptr, " ");
+        char* valueStr = strtok(nullptr, " ");
 
-        // Extract itemId and field
-        itemIdStr = strtok((char*)args, " ");
-        fieldStr = strtok(nullptr, " ");
-        
-        if (!itemIdStr || !fieldStr)
+        if (!itemIdStr || !fieldStr || !valueStr)
         {
             handler->SendSysMessage("Usage: .gathering modify <itemId> <field> <value>");
             handler->SendSysMessage("Fields: basexp, reqskill, profession, name");
+            handler->SendSysMessage("Example: .gathering modify 2770 profession Mining");
             return false;
         }
 
-        std::string field = fieldStr;
-        std::string value;
-
-        if (field == "name")
-        {
-            // Get the rest of the string for the name
-            valueStr = strtok(nullptr, "\n");
-            if (!valueStr)
-            {
-                handler->SendSysMessage("Name value is required");
-                return false;
-            }
-            
-            value = valueStr;
-            // Clean up the name (remove quotes if present)
-            if (!value.empty())
-            {
-                if (value[0] == '"')
-                    value = value.substr(1);
-                if (!value.empty() && value[value.length()-1] == '"')
-                    value = value.substr(0, value.length()-1);
-            }
-        }
-        else
-        {
-            valueStr = strtok(nullptr, " ");
-            if (!valueStr)
-            {
-                handler->SendSysMessage("Value is required");
-                return false;
-            }
-            value = valueStr;
-        }
-
         uint32 itemId = atoi(itemIdStr);
+        std::string field = fieldStr;
+        std::string value = valueStr;
 
+        // First check if item exists
+        QueryResult checkItem = WorldDatabase.Query("SELECT 1 FROM gathering_experience WHERE item_id = {}", itemId);
+        if (!checkItem)
+        {
+            handler->PSendSysMessage("Item ID {} not found in gathering database.", itemId);
+            return false;
+        }
+
+        std::string query = "UPDATE gathering_experience SET ";
         if (field == "basexp")
         {
-            uint32 baseXP = atoi(value.c_str());
-            WorldDatabase.DirectExecute("UPDATE gathering_experience SET base_xp = {} WHERE item_id = {}", 
-                baseXP, itemId);
+            query += Acore::StringFormat("base_xp = {}", atoi(value.c_str()));
         }
         else if (field == "reqskill")
         {
-            uint32 reqSkill = atoi(value.c_str());
-            WorldDatabase.DirectExecute("UPDATE gathering_experience SET required_skill = {} WHERE item_id = {}", 
-                reqSkill, itemId);
+            query += Acore::StringFormat("required_skill = {}", atoi(value.c_str()));
         }
         else if (field == "profession")
         {
@@ -941,28 +868,49 @@ public:
                 handler->SendSysMessage("Valid professions: Mining, Herbalism, Skinning, Fishing");
                 return false;
             }
-            WorldDatabase.DirectExecute("UPDATE gathering_experience SET profession = {} WHERE item_id = {}", 
-                professionId, itemId);
+            query += Acore::StringFormat("profession = {}", professionId);
         }
         else if (field == "name")
         {
-            WorldDatabase.DirectExecute("UPDATE gathering_experience SET name = '{}' WHERE item_id = {}", 
-                value, itemId);
+            query += Acore::StringFormat("name = '{}'", value.c_str());
         }
         else
         {
-            handler->SendSysMessage("Invalid field. Valid fields are: basexp, reqskill, profession, name");
+            handler->SendSysMessage("Invalid field specified.");
+            handler->SendSysMessage("Valid fields: basexp, reqskill, profession, name");
             return false;
         }
 
+        query += Acore::StringFormat(" WHERE item_id = {}", itemId);
+        WorldDatabase.DirectExecute(query);
+        
+        // Force reload of data after modification
         if (!GatheringExperienceModule::instance)
         {
-            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
+            handler->PSendSysMessage("Failed to reload data after modifying item {}.", itemId);
             return false;
         }
 
         GatheringExperienceModule::instance->LoadDataFromDB();
-        handler->PSendSysMessage("Modified {} to {} for item {}", field, value, itemId);
+        
+        // Show updated item details AFTER reload
+        QueryResult result = WorldDatabase.Query(
+            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.name "
+            "FROM gathering_experience ge "
+            "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
+            "WHERE ge.item_id = {}", itemId);
+
+        if (result)
+        {
+            Field* fields = result->Fetch();
+            handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
+                fields[0].Get<uint32>(),
+                fields[1].Get<uint32>(),
+                fields[2].Get<uint32>(),
+                fields[3].Get<std::string>(),
+                fields[4].Get<std::string>());
+        }
+
         return true;
     }
 
@@ -1053,7 +1001,7 @@ public:
         handler->SendSysMessage("Gathering Experience Module Commands:");
         handler->SendSysMessage("  .gathering version - Shows module version");
         handler->SendSysMessage("  .gathering reload - Reloads data from database");
-        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <requiredSkill> <profession> \"<name>\"");
+        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <reqSkill> <profession> <name>");
         handler->SendSysMessage("  .gathering remove <itemId>");
         handler->SendSysMessage("  .gathering modify <itemId> <field> <value>");
         handler->SendSysMessage("    Fields: basexp, reqskill, profession, name");
