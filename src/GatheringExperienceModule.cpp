@@ -66,7 +66,6 @@ private:
     };
 
     std::map<uint32, GatheringItem> gatheringItems;
-    std::map<uint32, float> rarityMultipliers;
     std::map<uint32, float> zoneMultipliers;
     bool enabled;
     bool dataLoaded;
@@ -135,7 +134,6 @@ public:
             // Clear existing data
             LOG_INFO("server.loading", "Clearing existing gathering data from memory...");
             gatheringItems.clear();
-            rarityMultipliers.clear();
             zoneMultipliers.clear();
             dataLoaded = false;
 
@@ -162,19 +160,6 @@ public:
                 LOG_INFO("server.loading", "No gathering items found in database");
             }
 
-            // Load rarity multipliers
-            if (QueryResult result = WorldDatabase.Query("SELECT item_id, multiplier FROM gathering_experience_rarity"))
-            {
-                uint32 count = 0;
-                do
-                {
-                    Field* fields = result->Fetch();
-                    rarityMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
-                    count++;
-                } while (result->NextRow());
-                LOG_INFO("server.loading", "Loaded {} rarity multipliers", count);
-            }
-
             // Load zone multipliers
             if (QueryResult result = WorldDatabase.Query("SELECT zone_id, multiplier FROM gathering_experience_zones"))
             {
@@ -195,7 +180,6 @@ public:
         {
             LOG_ERROR("server.loading", "Error in LoadDataFromDB: {}", e.what());
             gatheringItems.clear();
-            rarityMultipliers.clear();
             zoneMultipliers.clear();
             dataLoaded = false;
         }
@@ -221,7 +205,6 @@ public:
 
         float skillMultiplier = 1.0f;
         float levelMultiplier = std::min(8.0f, std::max(0.8f, player->GetLevel() / 10.0f));
-        float rarityMultiplier = 1.0f;
 
         if (IsFishingItem(itemId))
         {
@@ -307,7 +290,6 @@ public:
             float skillTierMult = std::min(1.2f, rawSkillTierMult);
             float progressBonus = std::min(0.3f, currentSkill / 450.0f);
             float zoneMult = GetFishingZoneMultiplier(player->GetZoneId());
-            float rarityMult = GetRarityMultiplier(itemId);
 
             // Get zone name for logging
             std::string zoneName = "Unknown";
@@ -322,7 +304,7 @@ public:
                 zoneMult = std::min(1.5f, zoneMult);
             }
 
-            uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult * levelPenalty * rarityMult);
+            uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult * levelPenalty);
             uint32 finalXP = normalXP;
 
             // Check if player has any rested XP available
@@ -350,10 +332,6 @@ public:
             LOG_INFO("module.gathering", "- Skill ({}) Tier Multiplier: {} (capped from {})", currentSkill, skillTierMult, rawSkillTierMult);
             LOG_INFO("module.gathering", "- Progress Bonus: {}", progressBonus);
             LOG_INFO("module.gathering", "- Zone Multiplier: {}", zoneMult);
-            if (rarityMult > 1.0f)
-            {
-                LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMult);
-            }
             LOG_INFO("module.gathering", "- Normal XP (before rested): {}", normalXP);
             LOG_INFO("module.gathering", "- Rested Bonus Applied: {}", finalXP - normalXP);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
@@ -397,14 +375,13 @@ public:
                 skillColor = "Gray (Trivial)";
             }
 
-            uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier * rarityMultiplier);
+            uint32 finalXP = static_cast<uint32>(baseXP * skillMultiplier * levelMultiplier);
 
             LOG_INFO("module.gathering", "Gathering XP Calculation:");
             LOG_INFO("module.gathering", "- Zone: {} (ID: {})", zoneName, player->GetZoneId());
             LOG_INFO("module.gathering", "- Base XP: {}", baseXP);
             LOG_INFO("module.gathering", "- Level ({}) Multiplier: {}", player->GetLevel(), levelMultiplier);
             LOG_INFO("module.gathering", "- Skill ({}/{}) Color: {} Multiplier: {}", currentSkill, requiredSkill, skillColor, skillMultiplier);
-            LOG_INFO("module.gathering", "- Rarity Multiplier: {}", rarityMultiplier);
             LOG_INFO("module.gathering", "- Final XP: {}", finalXP);
 
             return finalXP;
@@ -433,13 +410,6 @@ public:
         
         LOG_INFO("server.loading", "GetGatheringBaseXPAndRequiredSkill - Item {} not found in memory", itemId);
         return {0, 0};
-    }
-
-    // Function to apply rarity-based multipliers for special items
-    float GetRarityMultiplier(uint32 itemId)
-    {
-        auto it = rarityMultipliers.find(itemId);
-        return it != rarityMultipliers.end() ? it->second : 1.0f;
     }
 
     // Check if the item is related to gathering (mining, herbalism, skinning, or fishing)
@@ -712,7 +682,6 @@ public:
             { "zone",       HandleGatheringZoneCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "help",       HandleGatheringHelpCommand,      SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "currentzone", HandleGatheringCurrentZoneCommand, SEC_GAMEMASTER,  Acore::ChatCommands::Console::No },
-            { "rarity",      HandleGatheringRarityCommand,    SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "toggle",     HandleGatheringToggleProfessionCommand, SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
             { "status",     HandleGatheringStatusCommand,           SEC_GAMEMASTER,  Acore::ChatCommands::Console::Yes },
         };
@@ -1164,125 +1133,6 @@ public:
         handler->PSendSysMessage("Current Zone: {} (ID: {})", zoneName, zoneId);
         handler->PSendSysMessage("Gathering Experience Multiplier: {:.2f}x", multiplier);
 
-        return true;
-    }
-
-    static bool HandleGatheringRarityCommand(ChatHandler* handler, const char* args)
-    {
-        if (!args || !*args)
-        {
-            handler->SendSysMessage("Usage:");
-            handler->SendSysMessage("  .gathering rarity add <itemId> <multiplier> <name>");
-            handler->SendSysMessage("  .gathering rarity remove <itemId>");
-            handler->SendSysMessage("  .gathering rarity modify <itemId> <multiplier>");
-            handler->SendSysMessage("  .gathering rarity list");
-            return true;
-        }
-
-        char* actionStr = strtok((char*)args, " ");
-        if (!actionStr)
-        {
-            handler->SendSysMessage("Invalid command format.");
-            return false;
-        }
-
-        std::string action = actionStr;
-
-        if (action == "list")
-        {
-            QueryResult result = WorldDatabase.Query(
-                "SELECT ge.item_id, ger.multiplier, ge.name "
-                "FROM gathering_experience_rarity ger "
-                "JOIN gathering_experience ge ON ge.item_id = ger.item_id "
-                "ORDER BY ge.item_id");
-            
-            if (!result)
-            {
-                handler->SendSysMessage("No rarity multipliers found.");
-                return true;
-            }
-
-            handler->SendSysMessage("Current rarity multipliers:");
-            do
-            {
-                Field* fields = result->Fetch();
-                handler->PSendSysMessage("Item: {} (ID: {}), Multiplier: {:.2f}x",
-                    fields[2].Get<std::string>(),  // name
-                    fields[0].Get<uint32>(),       // item_id
-                    fields[1].Get<float>());       // multiplier
-            } while (result->NextRow());
-            return true;
-        }
-
-        char* itemIdStr = strtok(nullptr, " ");
-        if (!itemIdStr)
-        {
-            handler->SendSysMessage("Item ID required.");
-            return false;
-        }
-        uint32 itemId = atoi(itemIdStr);
-
-        if (action == "remove")
-        {
-            WorldDatabase.DirectExecute("DELETE FROM gathering_experience_rarity WHERE item_id = {}", itemId);
-            handler->PSendSysMessage("Removed rarity multiplier for item ID: {}", itemId);
-        }
-        else if (action == "add" || action == "modify")
-        {
-            char* multiplierStr = strtok(nullptr, " ");
-            if (!multiplierStr)
-            {
-                handler->SendSysMessage("Multiplier value required.");
-                return false;
-            }
-            float multiplier = atof(multiplierStr);
-
-            if (multiplier <= 0.0f)
-            {
-                handler->SendSysMessage("Multiplier must be greater than 0.");
-                return false;
-            }
-
-            if (action == "add")
-            {
-                char* nameStr = strtok(nullptr, "\n");  // Get rest of string as name
-                if (!nameStr)
-                {
-                    handler->SendSysMessage("Name required for add command.");
-                    return false;
-                }
-
-                WorldDatabase.DirectExecute(
-                    "REPLACE INTO gathering_experience_rarity (item_id, multiplier, name) VALUES ({}, {}, '{}')", 
-                    itemId, multiplier, nameStr);
-                handler->PSendSysMessage("Added multiplier {:.2f}x for item: {} (ID: {})", 
-                    multiplier, nameStr, itemId);
-            }
-            else // modify
-            {
-                WorldDatabase.DirectExecute(
-                    "UPDATE gathering_experience_rarity SET multiplier = {} WHERE item_id = {}", 
-                    multiplier, itemId);
-                
-                QueryResult result = WorldDatabase.Query(
-                    "SELECT name FROM gathering_experience WHERE item_id = {}", itemId);
-                std::string itemName = result ? result->Fetch()[0].Get<std::string>() : "Unknown";
-                
-                handler->PSendSysMessage("Modified multiplier to {:.2f}x for item: {} (ID: {})", 
-                    multiplier, itemName, itemId);
-            }
-        }
-        else
-        {
-            handler->SendSysMessage("Invalid action. Use: add, remove, modify, or list");
-            return false;
-        }
-
-        // Reload data
-        if (GatheringExperienceModule::instance)
-        {
-            GatheringExperienceModule::instance->LoadDataFromDB();
-        }
         return true;
     }
 
