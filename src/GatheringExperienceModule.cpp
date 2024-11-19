@@ -304,7 +304,7 @@ public:
                 zoneMult = std::min(1.5f, zoneMult);
             }
 
-            uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelMultiplier * (skillTierMult + progressBonus) * zoneMult * levelPenalty);
+            uint32 normalXP = static_cast<uint32>(adjustedBaseXP * (skillTierMult + progressBonus) * zoneMult * levelPenalty);
             uint32 finalXP = normalXP;
 
             // Check if player has any rested XP available
