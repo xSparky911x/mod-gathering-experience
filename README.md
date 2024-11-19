@@ -7,16 +7,15 @@ The Gathering Experience Module is a custom addition for AzerothCore that enhanc
 
 - Grants XP for gathering items from Mining, Herbalism, Skinning, and Fishing.
 - Individual profession toggles that persist through server restarts
-- Scales XP rewards based on player level, current skill level, and item rarity.
-- Implements diminishing returns to balance XP gains.
-- Provides extra XP bonuses for rare and super rare items.
+- Scales XP rewards based on player level, current skill level, and current zone.
+- Implements diminishing returns to balance XP gains and prevent power leveling from low level characters in high level areas.
 - Includes zone-based XP multipliers for fishing to encourage exploration.
 - Configurable enable/disable option and announcement on player login.
 
 ## Installation
 
 1. Clone this module into the `modules` directory of your AzerothCore source.
-2. Re-run cmake and rebuild AzerothCore.
+2. Re-build AzerothCore.
 
 ## Configuration
 
@@ -47,18 +46,13 @@ All commands require GM level 2 access:
 - `.gathering modify <itemId> <field> <value>`: Modifies an existing gathering item
   - Valid fields: basexp, reqskill, profession, name
   - For profession: Mining, Herbalism, Skinning, Fishing
-  - For name: The name of the item to add in quotes
+  - For name: The name of the item to add has to be in quotes
 
 - `.gathering zone <action> <zoneId> <multiplier>`: Manages zone multipliers
   - Valid actions: add, modify, remove
 - `.gathering zone list`: Lists current zone multipliers
 - `.gathering zone list zones`: Lists all available zones
 - `.gathering currentzone`: Shows current zone information and its experience multiplier
-
-- `.gathering rarity add <itemId> <multiplier> <name>`: Adds a new rarity multiplier
-- `.gathering rarity remove <itemId>`: Removes a rarity multiplier
-- `.gathering rarity modify <itemId> <multiplier>`: Modifies an existing rarity multiplier
-- `.gathering rarity list`: Lists all rarity multipliers
 
 Example commands:
 - `.gathering toggle mining`: Toggles Mining XP on/off
