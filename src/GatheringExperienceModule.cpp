@@ -247,16 +247,20 @@ public:
             
             // Get recommended level for this fish/zone
             uint32 recommendedLevel = 1;  // Default for starter areas
-            if (baseXP >= 625)  // Northrend fish
+            if (baseXP >= 216)       // Northrend fish (70+)
+                recommendedLevel = 70;
+            else if (baseXP >= 180)  // Outland fish (60-70)
                 recommendedLevel = 60;
-            else if (baseXP >= 500)  // Outland fish
+            else if (baseXP >= 168)  // High-level vanilla (50-60)
                 recommendedLevel = 50;
-            else if (baseXP >= 300)
+            else if (baseXP >= 144)  // Mid-high vanilla (40-50)
                 recommendedLevel = 40;
-            else if (baseXP >= 200)
+            else if (baseXP >= 108)  // Mid-level vanilla (30-40)
                 recommendedLevel = 30;
-            else if (baseXP >= 100)
+            else if (baseXP >= 72)   // Lower-level vanilla (20-30)
                 recommendedLevel = 20;
+            else if (baseXP >= 36)   // Beginner areas (10-20)
+                recommendedLevel = 10;
 
             // Calculate level difference
             int32 levelDiff = player->GetLevel() - recommendedLevel;
