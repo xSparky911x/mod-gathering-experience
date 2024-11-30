@@ -59,18 +59,28 @@ public:
         return true;
     }
 
-    static bool HandleGatheringAddCommand(ChatHandler* handler, const char* args)
+    static bool HandleGatheringAddCommand(ChatHandler* handler, char const* args)
     {
+        if (!*args)
+        {
+            handler->SendSysMessage("Usage: .gatherxp add #itemId #baseXP #requiredSkill #profession #rarity #name");
+            handler->SendSysMessage("Professions: 1=Mining, 2=Herbalism, 3=Skinning, 4=Fishing");
+            handler->SendSysMessage("Rarity: 0=Common, 1=Uncommon, 2=Rare");
+            return true;
+        }
+
         char* itemIdStr = strtok((char*)args, " ");
         char* baseXPStr = strtok(nullptr, " ");
         char* reqSkillStr = strtok(nullptr, " ");
         char* professionStr = strtok(nullptr, " ");
+        char* rarityStr = strtok(nullptr, " ");
         char* nameStr = strtok(nullptr, "\n");
 
-        if (!itemIdStr || !baseXPStr || !reqSkillStr || !professionStr || !nameStr)
+        if (!itemIdStr || !baseXPStr || !reqSkillStr || !professionStr || !rarityStr || !nameStr)
         {
-            handler->SendSysMessage("Usage: .gathering add <itemId> <baseXP> <requiredSkill> <profession> <name>");
-            handler->SendSysMessage("Professions: Mining, Herbalism, Skinning, Fishing");
+            handler->SendSysMessage("Usage: .gatherxp add #itemId #baseXP #requiredSkill #profession #rarity #name");
+            handler->SendSysMessage("Professions: 1=Mining, 2=Herbalism, 3=Skinning, 4=Fishing");
+            handler->SendSysMessage("Rarity: 0=Common, 1=Uncommon, 2=Rare");
             return false;
         }
 
@@ -78,6 +88,7 @@ public:
         uint32 baseXP = atoi(baseXPStr);
         uint32 reqSkill = atoi(reqSkillStr);
         std::string profName = professionStr;
+        uint8 rarity = atoi(rarityStr);
 
         uint8 professionId = GetProfessionIdByName(profName);
         if (professionId == 0)
@@ -87,8 +98,8 @@ public:
             return false;
         }
 
-        WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) VALUES ({}, {}, {}, {}, '{}')",
-            itemId, baseXP, reqSkill, professionId, nameStr);
+        WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, rarity, name) VALUES ({}, {}, {}, {}, {}, '{}')",
+            itemId, baseXP, reqSkill, professionId, rarity, nameStr);
 
         if (!GatheringExperienceModule::instance)
         {
@@ -114,7 +125,7 @@ public:
 
         // Get item details before removing
         QueryResult result = WorldDatabase.Query(
-            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.name "
+            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
             "FROM gathering_experience ge "
             "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
             "WHERE ge.item_id = {}", itemId);
@@ -138,23 +149,27 @@ public:
         return true;
     }
 
-    static bool HandleGatheringModifyCommand(ChatHandler* handler, const char* args)
+    static bool HandleGatheringModifyCommand(ChatHandler* handler, char const* args)
     {
-        char* itemIdStr = strtok((char*)args, " ");
-        char* fieldStr = strtok(nullptr, " ");
-        char* valueStr = strtok(nullptr, " ");
-
-        if (!itemIdStr || !fieldStr || !valueStr)
+        if (!*args)
         {
             handler->SendSysMessage("Usage: .gathering modify <itemId> <field> <value>");
-            handler->SendSysMessage("Fields: basexp, reqskill, profession, name");
-            handler->SendSysMessage("Example: .gathering modify 2770 profession Mining");
+            handler->SendSysMessage("Fields: basexp, reqskill, profession, rarity, name");
+            return true;
+        }
+
+        char* itemIdStr = strtok((char*)args, " ");
+        char* fieldStr = strtok(nullptr, " ");
+
+        if (!itemIdStr || !fieldStr)
+        {
+            handler->SendSysMessage("Usage: .gathering modify <itemId> <field> <value>");
+            handler->SendSysMessage("Fields: basexp, reqskill, profession, rarity, name");
             return false;
         }
 
         uint32 itemId = atoi(itemIdStr);
         std::string field = fieldStr;
-        std::string value = valueStr;
 
         // First check if item exists
         QueryResult checkItem = WorldDatabase.Query("SELECT 1 FROM gathering_experience WHERE item_id = {}", itemId);
@@ -165,34 +180,71 @@ public:
         }
 
         std::string query = "UPDATE gathering_experience SET ";
-        if (field == "basexp")
+        
+        // Handle name field differently - don't split the value
+        if (field == "name")
         {
-            query += Acore::StringFormat("base_xp = {}", atoi(value.c_str()));
-        }
-        else if (field == "reqskill")
-        {
-            query += Acore::StringFormat("required_skill = {}", atoi(value.c_str()));
-        }
-        else if (field == "profession")
-        {
-            uint8 professionId = GetProfessionIdByName(value);
-            if (professionId == 0)
+            char* nameStr = strtok(nullptr, "\0");  // Get everything after "name"
+            if (!nameStr)
             {
-                handler->PSendSysMessage("Invalid profession: {}", value);
-                handler->SendSysMessage("Valid professions: Mining, Herbalism, Skinning, Fishing");
+                handler->SendSysMessage("Name value required.");
                 return false;
             }
-            query += Acore::StringFormat("profession = {}", professionId);
+
+            // Clean up the name by removing quotes only
+            std::string itemName = nameStr;
+            while (!itemName.empty() && (itemName[0] == '"' || itemName[0] == ' '))
+                itemName = itemName.substr(1);
+            while (!itemName.empty() && (itemName.back() == '"' || itemName.back() == ' '))
+                itemName.pop_back();
+
+            query += Acore::StringFormat("name = '{}'", itemName);
         }
-        else if (field == "name")
+        else  // Handle other fields normally
         {
-            query += Acore::StringFormat("name = '{}'", value.c_str());
-        }
-        else
-        {
-            handler->SendSysMessage("Invalid field specified.");
-            handler->SendSysMessage("Valid fields: basexp, reqskill, profession, name");
-            return false;
+            char* valueStr = strtok(nullptr, " ");
+            if (!valueStr)
+            {
+                handler->SendSysMessage("Value required.");
+                return false;
+            }
+            std::string value = valueStr;
+
+            if (field == "basexp")
+            {
+                query += Acore::StringFormat("base_xp = {}", atoi(value.c_str()));
+            }
+            else if (field == "reqskill")
+            {
+                query += Acore::StringFormat("required_skill = {}", atoi(value.c_str()));
+            }
+            else if (field == "profession")
+            {
+                uint8 professionId = GetProfessionIdByName(value);
+                if (professionId == 0)
+                {
+                    handler->PSendSysMessage("Invalid profession: {}", value);
+                    handler->SendSysMessage("Valid professions: Mining, Herbalism, Skinning, Fishing");
+                    return false;
+                }
+                query += Acore::StringFormat("profession = {}", professionId);
+            }
+            else if (field == "rarity")
+            {
+                uint8 rarity = atoi(value.c_str());
+                if (rarity > 2)  // 0=Common, 1=Uncommon, 2=Rare
+                {
+                    handler->SendSysMessage("Invalid rarity value. Use: 0=Common, 1=Uncommon, 2=Rare");
+                    return false;
+                }
+                query += Acore::StringFormat("rarity = {}", rarity);
+            }
+            else
+            {
+                handler->SendSysMessage("Invalid field specified.");
+                handler->SendSysMessage("Valid fields: basexp, reqskill, profession, rarity, name");
+                return false;
+            }
         }
 
         query += Acore::StringFormat(" WHERE item_id = {}", itemId);
@@ -209,7 +261,7 @@ public:
         
         // Show updated item details AFTER reload
         QueryResult result = WorldDatabase.Query(
-            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.name "
+            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
             "FROM gathering_experience ge "
             "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
             "WHERE ge.item_id = {}", itemId);
@@ -217,24 +269,25 @@ public:
         if (result)
         {
             Field* fields = result->Fetch();
-            handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
+            handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Rarity: {}, Name: {}",
                 fields[0].Get<uint32>(),
                 fields[1].Get<uint32>(),
                 fields[2].Get<uint32>(),
                 fields[3].Get<std::string>(),
-                fields[4].Get<std::string>());
+                fields[4].Get<uint8>(),
+                fields[5].Get<std::string>());
         }
 
         return true;
     }
 
-    static bool HandleGatheringListCommand(ChatHandler* handler, const char* args)
+    static bool HandleGatheringListCommand(ChatHandler* handler, char const* args)
     {
         if (!*args)
         {
             // List all items
             QueryResult result = WorldDatabase.Query(
-                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.name "
+                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
                 "FROM gathering_experience ge "
                 "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
                 "ORDER BY gep.name, ge.required_skill");
@@ -249,12 +302,13 @@ public:
             do
             {
                 Field* fields = result->Fetch();
-                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Name: {}",
+                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Rarity: {}, Name: {}",
                     fields[0].Get<uint32>(),    // ItemID
                     fields[1].Get<uint32>(),    // BaseXP
                     fields[2].Get<uint32>(),    // ReqSkill
                     fields[3].Get<std::string>(), // Profession name
-                    fields[4].Get<std::string>()); // Item name
+                    fields[4].Get<uint8>(),    // Rarity
+                    fields[5].Get<std::string>()); // Item name
             } while (result->NextRow());
         }
         else
@@ -265,7 +319,7 @@ public:
             std::transform(profName.begin(), profName.end(), profName.begin(), ::tolower);
 
             QueryResult result = WorldDatabase.Query(
-                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.name "
+                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
                 "FROM gathering_experience ge "
                 "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
                 "WHERE LOWER(gep.name) = '{}' "
@@ -281,11 +335,12 @@ public:
             do
             {
                 Field* fields = result->Fetch();
-                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Name: {}",
+                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Rarity: {}, Name: {}",
                     fields[0].Get<uint32>(),    // ItemID
                     fields[1].Get<uint32>(),    // BaseXP
                     fields[2].Get<uint32>(),    // ReqSkill
-                    fields[4].Get<std::string>()); // Item name
+                    fields[4].Get<uint8>(),    // Rarity
+                    fields[5].Get<std::string>()); // Item name
             } while (result->NextRow());
         }
 
@@ -315,14 +370,14 @@ public:
         handler->SendSysMessage("Gathering Experience Module Commands:");
         handler->SendSysMessage("  .gathering version - Shows module version");
         handler->SendSysMessage("  .gathering reload - Reloads data from database");
-        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <reqSkill> <profession> <name>");
+        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <reqSkill> <profession> <rarity> <name>");
         handler->SendSysMessage("  .gathering remove <itemId>");
         handler->SendSysMessage("  .gathering modify <itemId> <field> <value>");
-        handler->SendSysMessage("    Fields: basexp, reqskill, profession, name");
+        handler->SendSysMessage("    Fields: basexp, reqskill, profession, rarity, name");
         handler->SendSysMessage("  .gathering list [profession]");
         handler->SendSysMessage("  .gathering zone add <zoneId> <multiplier> <zoneName>");
         handler->SendSysMessage("  .gathering zone remove <zoneId>");
-        handler->SendSysMessage("  .gathering zone modify <zoneId> <multiplier>");
+        handler->SendSysMessage("  .gathering zone modify <zoneId> <field> <value>");
         handler->SendSysMessage("  .gathering zone list");
         handler->SendSysMessage("  .gathering currentzone - Shows current zone info and multiplier");
         handler->SendSysMessage("  Valid professions: Mining, Herbalism, Skinning, Fishing");
@@ -336,7 +391,7 @@ public:
             handler->SendSysMessage("Usage:");
             handler->SendSysMessage("  .gathering zone add <zoneId> <multiplier> <zoneName>");
             handler->SendSysMessage("  .gathering zone remove <zoneId>");
-            handler->SendSysMessage("  .gathering zone modify <zoneId> <multiplier>");
+            handler->SendSysMessage("  .gathering zone modify <zoneId> <field> <value>");
             handler->SendSysMessage("  .gathering zone list");
             return true;
         }
@@ -382,53 +437,91 @@ public:
 
         if (action == "remove")
         {
+            // Get zone name before removing
+            QueryResult result = WorldDatabase.Query(
+                "SELECT name FROM gathering_experience_zones WHERE zone_id = {}", zoneId);
+            
+            if (!result)
+            {
+                handler->PSendSysMessage("Zone ID {} not found in database.", zoneId);
+                return false;
+            }
+
+            std::string zoneName = result->Fetch()[0].Get<std::string>();
+            
             WorldDatabase.DirectExecute("DELETE FROM gathering_experience_zones WHERE zone_id = {}", zoneId);
-            handler->PSendSysMessage("Removed multiplier for zone ID: {}", zoneId);
+            handler->PSendSysMessage("Removed multiplier for zone: {} (ID: {})", zoneName, zoneId);
         }
         else if (action == "add" || action == "modify")
         {
-            char* multiplierStr = strtok(nullptr, " ");
-            if (!multiplierStr)
-            {
-                handler->SendSysMessage("Multiplier value required.");
-                return false;
-            }
-            float multiplier = atof(multiplierStr);
+            char* fieldStr = strtok(nullptr, " ");
+            char* valueStr = strtok(nullptr, " ");
 
-            if (multiplier <= 0.0f)
+            if (!fieldStr || !valueStr)
             {
-                handler->SendSysMessage("Multiplier must be greater than 0.");
+                handler->SendSysMessage("Usage: .gathering zone modify <zoneId> <field> <value>");
+                handler->SendSysMessage("Fields: multiplier, name");
                 return false;
             }
 
-            if (action == "add")
+            std::string field = fieldStr;
+            std::string query = "UPDATE gathering_experience_zones SET ";
+
+            if (field == "multiplier")
             {
-                char* nameStr = strtok(nullptr, "\n");  // Get rest of string as zone name
+                float multiplier = atof(valueStr);
+                if (multiplier <= 0.0f)
+                {
+                    handler->SendSysMessage("Multiplier must be greater than 0.");
+                    return false;
+                }
+                query += Acore::StringFormat("multiplier = {}", multiplier);
+            }
+            else if (field == "name")
+            {
+                // Get the rest of the string after "name"
+                char* nameStr = strtok(nullptr, "\0");
                 if (!nameStr)
                 {
-                    handler->SendSysMessage("Zone name required for add command.");
+                    handler->SendSysMessage("Name value required.");
                     return false;
                 }
 
-                WorldDatabase.DirectExecute(
-                    "REPLACE INTO gathering_experience_zones (zone_id, multiplier, name) VALUES ({}, {}, '{}')", 
-                    zoneId, multiplier, nameStr);
-                handler->PSendSysMessage("Added multiplier {:.2f}x for zone: {} (ID: {})", 
-                    multiplier, nameStr, zoneId);
+                // Clean up the name by removing quotes
+                std::string zoneName = nameStr;
+                while (!zoneName.empty() && (zoneName[0] == '"' || zoneName[0] == ' '))
+                    zoneName = zoneName.substr(1);
+                while (!zoneName.empty() && (zoneName.back() == '"' || zoneName.back() == ' '))
+                    zoneName.pop_back();
+
+                // Handle apostrophes
+                std::string escapedName = zoneName;
+                size_t pos = 0;
+                while ((pos = escapedName.find("'", pos)) != std::string::npos) {
+                    escapedName.replace(pos, 1, "''");
+                    pos += 2;
+                }
+
+                query += Acore::StringFormat("name = '{}'", escapedName);
             }
-            else // modify
+            else
             {
-                WorldDatabase.DirectExecute(
-                    "UPDATE gathering_experience_zones SET multiplier = {} WHERE zone_id = {}", 
-                    multiplier, zoneId);
-                
-                // Get zone name for feedback message
-                QueryResult result = WorldDatabase.Query(
-                    "SELECT name FROM gathering_experience_zones WHERE zone_id = {}", zoneId);
-                std::string zoneName = result ? result->Fetch()[0].Get<std::string>() : "Unknown";
-                
-                handler->PSendSysMessage("Modified multiplier to {:.2f}x for zone: {} (ID: {})", 
-                    multiplier, zoneName, zoneId);
+                handler->SendSysMessage("Invalid field specified.");
+                handler->SendSysMessage("Valid fields: multiplier, name");
+                return false;
+            }
+
+            query += Acore::StringFormat(" WHERE zone_id = {}", zoneId);
+            WorldDatabase.DirectExecute(query);
+
+            // Get updated zone info for feedback message
+            QueryResult result = WorldDatabase.Query(
+                "SELECT name, multiplier FROM gathering_experience_zones WHERE zone_id = {}", zoneId);
+            if (result)
+            {
+                Field* fields = result->Fetch();
+                handler->PSendSysMessage("Updated zone: {} (ID: {}) - Multiplier: {:.2f}x", 
+                    fields[0].Get<std::string>(), zoneId, fields[1].Get<float>());
             }
         }
         else
@@ -455,12 +548,24 @@ public:
         }
 
         uint32 zoneId = player->GetZoneId();
+        uint32 areaId = player->GetAreaId();  // Get the area ID too
         std::string zoneName = "Unknown";
 
         // Get zone name from AreaTableEntry
         if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(zoneId))
         {
             zoneName = area->area_name[0];
+            handler->PSendSysMessage("Debug - Area Entry Found: {} (ID: {})", area->area_name[0], zoneId);
+        }
+        else
+        {
+            handler->PSendSysMessage("Debug - No Area Entry Found for ID: {}", zoneId);
+        }
+
+        // Also show area info
+        if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(areaId))
+        {
+            handler->PSendSysMessage("Debug - Current Area: {} (ID: {})", area->area_name[0], areaId);
         }
 
         float multiplier = 1.0f;  // Default multiplier
@@ -543,6 +648,44 @@ public:
         handler->PSendSysMessage("Herbalism: {}", GatheringExperienceModule::instance->IsHerbalismEnabled() ? "Enabled" : "Disabled");
         handler->PSendSysMessage("Skinning: {}", GatheringExperienceModule::instance->IsSkinningEnabled() ? "Enabled" : "Disabled");
         handler->PSendSysMessage("Fishing: {}", GatheringExperienceModule::instance->IsFishingEnabled() ? "Enabled" : "Disabled");
+        return true;
+    }
+
+    static bool HandleGatheringZoneAddCommand(ChatHandler* handler, char const* args)
+    {
+        if (!*args)
+        {
+            handler->SendSysMessage("Usage: .gathering zone add #zoneId #multiplier #name");
+            return true;
+        }
+
+        char* zoneIdStr = strtok((char*)args, " ");
+        char* multiplierStr = strtok(nullptr, " ");
+        char* nameStr = strtok(nullptr, "\0");  // Get the rest of the string
+
+        if (!zoneIdStr || !multiplierStr || !nameStr)
+        {
+            handler->SendSysMessage("Missing parameters!");
+            handler->SendSysMessage("Usage: .gathering zone add #zoneId #multiplier #name");
+            return true;
+        }
+
+        uint32 zoneId = atoi(zoneIdStr);
+        float multiplier = atof(multiplierStr);
+        
+        // Clean up the name by removing quotes only
+        std::string zoneName = nameStr;
+        if (!zoneName.empty() && zoneName[0] == '"')
+            zoneName = zoneName.substr(1);
+        if (!zoneName.empty() && zoneName.back() == '"')
+            zoneName.pop_back();
+
+        WorldDatabase.DirectExecute("REPLACE INTO gathering_experience_zones (zone_id, multiplier, name) VALUES ({}, {}, '{}')",
+            zoneId, multiplier, zoneName);
+
+        handler->PSendSysMessage("Added multiplier {:.2f}x for zone: {} (ID: {})", 
+            multiplier, zoneName, zoneId);
+
         return true;
     }
 };

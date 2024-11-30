@@ -56,6 +56,7 @@ private:
         uint32 requiredSkill;
         uint8 profession;
         std::string name;
+        uint8 rarity;
     };
 
     std::map<uint32, GatheringItem> gatheringItems;
@@ -82,6 +83,8 @@ public:
     void OnStartup() override;
     void OnBeforeConfigLoad(bool reload) override;
     void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override;
+    void OnAfterConfigLoad(bool reload) override;
+    void OnLogin(Player* player) override;
 
     // Database loading
     void LoadDataFromDB();
@@ -107,16 +110,20 @@ public:
     bool IsEnabled() const { return enabled; }
     void SetEnabled(bool state) { enabled = state; }
 
-    std::tuple<uint32, uint32, uint8, std::string> const* GetGatheringData(uint32 itemId) const
+    std::optional<std::tuple<uint32, uint32, uint8, std::string, uint8>> GetGatheringData(uint32 itemId) const
     {
         auto it = gatheringItems.find(itemId);
-        if (it == gatheringItems.end())
-            return nullptr;
-
-        const GatheringItem& item = it->second;
-        static std::tuple<uint32, uint32, uint8, std::string> result;
-        result = std::make_tuple(item.baseXP, item.requiredSkill, item.profession, item.name);
-        return &result;
+        if (it != gatheringItems.end())
+        {
+            return std::make_tuple(
+                it->second.baseXP,
+                it->second.requiredSkill,
+                it->second.profession,
+                it->second.name,
+                it->second.rarity
+            );
+        }
+        return std::nullopt;
     }
 
     void LoadGatheringData();
@@ -126,13 +133,13 @@ public:
         return gatheringItems.find(itemId) != gatheringItems.end();
     }
 
+    bool IsCityZone(uint32 zoneId) const;
+
 private:
     // Helper functions
     float GetFishingTierMultiplier(uint32 currentSkill) const;
     float CalculateProgressBonus(uint32 currentSkill);
     void LoadZoneData();
-
-    bool IsCityZone(uint32 zoneId) const;
 };
 
 #define sGatheringExperience GatheringExperienceModule::instance

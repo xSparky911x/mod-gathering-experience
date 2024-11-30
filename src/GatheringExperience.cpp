@@ -9,6 +9,7 @@
 #include "Log.h"
 #include "StringFormat.h"
 #include "GatheringExperience.h"
+#include "professions/Fishing.h"
 
 GatheringExperienceModule* GatheringExperienceModule::instance = nullptr;
 
@@ -53,7 +54,7 @@ void GatheringExperienceModule::LoadGatheringData()
     gatheringItems.clear();
 
     // Load gathering items
-    if (QueryResult result = WorldDatabase.Query("SELECT item_id, base_xp, required_skill, profession, name FROM gathering_experience"))
+    if (QueryResult result = WorldDatabase.Query("SELECT item_id, base_xp, required_skill, profession, name, COALESCE(rarity, 0) as rarity FROM gathering_experience"))
     {
         uint32 count = 0;
         do
@@ -65,6 +66,7 @@ void GatheringExperienceModule::LoadGatheringData()
             item.requiredSkill = fields[2].Get<uint32>();
             item.profession = fields[3].Get<uint8>();
             item.name = fields[4].Get<std::string>();
+            item.rarity = fields[5].Get<uint8>();
             gatheringItems[itemId] = item;
             count++;
         } while (result->NextRow());
@@ -179,31 +181,16 @@ uint32 GatheringExperienceModule::CalculateExperience(Player* player, uint32 bas
         zoneMultiplier *= 0.5f; // 50% reduction in cities
     }
 
-    // Calculate skill tier multiplier and progress bonus
-    float skillTierMult = GetFishingTierMultiplier(currentSkill);
+    // Calculate progress bonus
     float progressBonus = CalculateProgressBonus(currentSkill);
 
     // Calculate final experience
-    uint32 experience = static_cast<uint32>(baseXP * skillTierMult * (1.0f + progressBonus) * zoneMultiplier);
+    uint32 experience = static_cast<uint32>(baseXP * (1.0f + progressBonus) * zoneMultiplier);
 
     // Apply min/max bounds
     experience = std::max(MIN_EXPERIENCE_GAIN, std::min(experience, MAX_EXPERIENCE_GAIN));
 
     return experience;
-}
-
-float GatheringExperienceModule::GetFishingTierMultiplier(uint32 currentSkill) const
-{
-    if (currentSkill <= TIER_1_MAX)
-        return 1.0f;
-    else if (currentSkill <= TIER_2_MAX)
-        return 0.8f;
-    else if (currentSkill <= TIER_3_MAX)
-        return 0.6f;
-    else if (currentSkill <= TIER_4_MAX)
-        return 0.4f;
-    else
-        return 0.2f;
 }
 
 float GatheringExperienceModule::CalculateProgressBonus(uint32 currentSkill)
@@ -219,44 +206,49 @@ void GatheringExperienceModule::OnLootItem(Player* player, Item* item, uint32 /*
         return;
 
     uint32 itemId = item->GetEntry();
-    if (!IsGatheringItem(itemId))
-        return;
-
     auto it = gatheringItems.find(itemId);
     if (it == gatheringItems.end())
         return;
 
     const GatheringItem& gatherItem = it->second;
+    uint32 experience = 0;
 
-    // Get current skill level based on profession
-    uint32 currentSkill = 0;
-    switch (gatherItem.profession)
+    // Handle fishing items separately
+    if (gatherItem.profession == PROF_FISHING)
     {
-        case PROF_MINING:
-            if (!miningEnabled) return;
-            currentSkill = player->GetSkillValue(SKILL_MINING);
-            break;
-        case PROF_HERBALISM:
-            if (!herbalismEnabled) return;
-            currentSkill = player->GetSkillValue(SKILL_HERBALISM);
-            break;
-        case PROF_SKINNING:
-            if (!skinningEnabled) return;
-            currentSkill = player->GetSkillValue(SKILL_SKINNING);
-            break;
-        case PROF_FISHING:
-            if (!fishingEnabled) return;
-            currentSkill = player->GetSkillValue(SKILL_FISHING);
-            break;
-        default:
-            return;
+        LOG_DEBUG("module", "Processing fishing item {} for player {}", gatherItem.name, player->GetName());
+        experience = sFishingExperience->CalculateFishingExperience(player, itemId);
+    }
+    else
+    {
+        // Get current skill level based on profession
+        uint32 currentSkill = 0;
+        switch (gatherItem.profession)
+        {
+            case PROF_MINING:
+                if (!miningEnabled) return;
+                currentSkill = player->GetSkillValue(SKILL_MINING);
+                break;
+            case PROF_HERBALISM:
+                if (!herbalismEnabled) return;
+                currentSkill = player->GetSkillValue(SKILL_HERBALISM);
+                break;
+            case PROF_SKINNING:
+                if (!skinningEnabled) return;
+                currentSkill = player->GetSkillValue(SKILL_SKINNING);
+                break;
+            default:
+                return;
+        }
+
+        experience = CalculateExperience(player, gatherItem.baseXP, gatherItem.requiredSkill, currentSkill, itemId);
     }
 
-    uint32 experience = CalculateExperience(player, gatherItem.baseXP, gatherItem.requiredSkill, currentSkill, itemId);
     if (experience > 0)
     {
         player->GiveXP(experience, nullptr);
-        ChatHandler(player->GetSession()).PSendSysMessage("You gain %u experience from gathering.", experience);
+        LOG_DEBUG("module", "Player {} gained {} experience from gathering {}", 
+            player->GetName(), experience, gatherItem.name);
     }
 }
 
@@ -312,5 +304,32 @@ void GatheringExperienceModule::OnBeforeConfigLoad(bool /*reload*/)
     LoadSettingsFromDB();
 
     LOG_INFO("server.loading", "Gathering Experience Module configuration loaded.");
+}
+
+void GatheringExperienceModule::OnAfterConfigLoad(bool /*reload*/)
+{
+    if (enabled)
+    {
+        LOG_INFO("module", "Gathering Experience Module {} Loaded", GATHERING_EXPERIENCE_VERSION);
+        LOG_INFO("module", "Mining: {}, Herbalism: {}, Skinning: {}, Fishing: {}",
+            miningEnabled ? "Enabled" : "Disabled",
+            herbalismEnabled ? "Enabled" : "Disabled",
+            skinningEnabled ? "Enabled" : "Disabled",
+            fishingEnabled ? "Enabled" : "Disabled"
+        );
+    }
+}
+
+void GatheringExperienceModule::OnLogin(Player* player)
+{
+    if (!enabled)
+        return;
+
+    if (sConfigMgr->GetOption<bool>("GatheringExperience.Announce", true))
+    {
+        std::string message = "This server is running the |cff4CFF00Gathering Experience|r module v" + 
+            std::string(GATHERING_EXPERIENCE_VERSION) + " by xSparky911x and Thaxtin.";
+        ChatHandler(player->GetSession()).SendSysMessage(message.c_str());
+    }
 }
 

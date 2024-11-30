@@ -1,5 +1,6 @@
 #include "GatheringExperience.h"
 #include "GatheringExperienceCommands.h"
+#include "professions/Fishing.h"
 #include "ScriptMgr.h"
 
 // Declare the function to register the module scripts
@@ -7,6 +8,8 @@ void AddGatheringExperienceModuleScripts()
 {
     new GatheringExperienceModule();
     new GatheringExperienceCommandScript();
+    // Initialize the fishing singleton
+    sFishingExperience->instance();
 }
 
 // This is the function that the module system looks for

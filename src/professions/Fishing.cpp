@@ -1,0 +1,169 @@
+#include "Fishing.h"
+#include "Player.h"
+#include "ScriptMgr.h"
+
+FishingExperience* FishingExperience::instance()
+{
+    static FishingExperience instance;
+    return &instance;
+}
+
+uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 itemId)
+{
+    if (!player || !IsFishingItem(itemId))
+        return 0;
+
+    if (!sGatheringExperience->IsFishingEnabled())
+        return 0;
+
+    auto gatherData = sGatheringExperience->GetGatheringData(itemId);
+    if (!gatherData)
+        return 0;
+
+    uint32 baseXP = std::get<0>(*gatherData);
+    uint16 playerSkill = player->GetSkillValue(SKILL_FISHING);
+    std::string itemName = std::get<3>(*gatherData);
+
+    // Adjust base XP based on skill tiers
+    uint32 adjustedBaseXP = baseXP;
+    std::string adjustReason;
+
+    if (playerSkill > 300)
+    {
+        uint32 skillBasedMin = 200;
+        if (adjustedBaseXP < skillBasedMin)
+        {
+            adjustedBaseXP = skillBasedMin;
+            adjustReason = "minimum for skill > 300";
+        }
+    }
+    else if (playerSkill > 150)
+    {
+        uint32 skillBasedMin = 125;
+        if (adjustedBaseXP < skillBasedMin)
+        {
+            adjustedBaseXP = skillBasedMin;
+            adjustReason = "minimum for skill > 150";
+        }
+    }
+    else if (playerSkill > 75)
+    {
+        uint32 skillBasedMin = 100;
+        if (adjustedBaseXP < skillBasedMin)
+        {
+            adjustedBaseXP = skillBasedMin;
+            adjustReason = "minimum for skill > 75";
+        }
+    }
+
+    // Get recommended level for this fish based on base XP
+    uint32 recommendedLevel = 1;
+    if (baseXP >= 600)           recommendedLevel = 70;  // Northrend
+    else if (baseXP >= 500)      recommendedLevel = 60;  // Outland
+    else if (baseXP >= 400)      recommendedLevel = 50;  // High vanilla
+    else if (baseXP >= 300)      recommendedLevel = 40;  // Mid-high vanilla
+    else if (baseXP >= 200)      recommendedLevel = 30;  // Mid vanilla
+    else if (baseXP >= 100)      recommendedLevel = 20;  // Low vanilla
+    else                         recommendedLevel = 10;  // Beginner
+
+    int32 levelDiff = player->GetLevel() - recommendedLevel;
+    float levelPenalty = 1.0f;
+    std::string penaltyReason;
+
+    if (levelDiff < -20)  // Way too low level
+    {
+        levelPenalty = 0.4f;
+        penaltyReason = fmt::format("reduced (level {} << {})", player->GetLevel(), recommendedLevel);
+    }
+    else if (levelDiff < -10)  // Moderately low level
+    {
+        levelPenalty = 0.75f;
+        penaltyReason = fmt::format("slightly reduced (level {} < {})", player->GetLevel(), recommendedLevel);
+    }
+    else if (levelDiff >= 10)  // Over level
+    {
+        levelPenalty = 0.5f;
+        penaltyReason = fmt::format("reduced (level {} > {})", player->GetLevel(), recommendedLevel);
+    }
+
+    // Calculate progress bonus (0-30% based on skill)
+    float progressBonus = std::min(0.3f, playerSkill / 450.0f);
+
+    // Get zone info
+    std::string zoneName = "Unknown";
+    uint32 zoneId = player->GetZoneId();
+    if (AreaTableEntry const* area = sAreaTableStore.LookupEntry(zoneId))
+    {
+        zoneName = area->area_name[0];
+    }
+
+    bool isCity = sGatheringExperience->IsCityZone(zoneId);
+    float zoneMult = sGatheringExperience->GetZoneMultiplier(zoneId);
+    if (isCity)
+    {
+        zoneMult = std::min(1.5f, zoneMult);
+    }
+
+    float rarityMult = GetRarityMultiplier(itemId);
+    uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelPenalty * (1.0f + progressBonus) * zoneMult * rarityMult);
+    uint32 finalXP = normalXP;
+
+    // Apply rested bonus if available
+    if (player->GetRestBonus() > 0)
+    {
+        uint32 restedXP = player->GetXPRestBonus(normalXP);
+        finalXP += restedXP;
+        float currentRestBonus = player->GetRestBonus();
+        player->SetRestBonus(currentRestBonus - (float(restedXP) / 2.0f));
+    }
+
+    // Logging
+    LOG_INFO("module", "Fishing XP Calculation for {}:", player->GetName());
+    LOG_INFO("module", "- Fish: {} (Item ID: {})", itemName, itemId);
+    LOG_INFO("module", "- Zone: {} (ID: {}) {}", zoneName, zoneId, isCity ? "[City]" : "");
+    LOG_INFO("module", "- Base XP: {}", baseXP);
+    LOG_INFO("module", "- Level Penalty: {} {}", levelPenalty, 
+        levelPenalty < 1.0f ? fmt::format("({})", penaltyReason) : "");
+    LOG_INFO("module", "- Skill Level: {}", playerSkill);
+    LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
+    LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
+    LOG_INFO("module", "- Normal XP (before rested): {}", normalXP);
+    LOG_INFO("module", "- Rested Bonus Applied: {}", finalXP - normalXP);
+    LOG_INFO("module", "- Final XP: {}", finalXP);
+    if (rarityMult > 1.0f)
+    {
+        std::string rarityText = (rarityMult == 1.5f) ? "Rare" : "Uncommon";
+        LOG_INFO("module", "- Rarity: {} (+{}% bonus)", 
+            rarityText, 
+            static_cast<int>((rarityMult - 1.0f) * 100));
+    }
+
+    return finalXP;
+}
+
+bool FishingExperience::IsFishingItem(uint32 itemId) const
+{
+    auto gatherData = sGatheringExperience->GetGatheringData(itemId);
+    if (!gatherData)
+        return false;
+
+    return std::get<2>(*gatherData) == PROF_FISHING;
+}
+
+float FishingExperience::GetRarityMultiplier(uint32 itemId) const
+{
+    auto gatherData = sGatheringExperience->GetGatheringData(itemId);
+    if (!gatherData)
+        return 1.0f;
+
+    uint8 rarity = std::get<4>(*gatherData);
+    switch (rarity)
+    {
+        case 1:  // Uncommon
+            return 1.25f;
+        case 2:  // Rare
+            return 1.5f;
+        default: // Common or any invalid value
+            return 1.0f;
+    }
+} 
