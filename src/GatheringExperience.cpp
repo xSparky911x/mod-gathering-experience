@@ -10,11 +10,12 @@
 #include "StringFormat.h"
 #include "GatheringExperience.h"
 #include "professions/Fishing.h"
+#include "professions/Skinning.h"
 
 GatheringExperienceModule* GatheringExperienceModule::instance = nullptr;
 
 // Define the version string here
-const char* GATHERING_EXPERIENCE_VERSION = "0.4.2";
+const char* GATHERING_EXPERIENCE_VERSION = "0.5";
 
 void GatheringExperienceModule::LoadDataFromDB()
 {
@@ -200,55 +201,27 @@ float GatheringExperienceModule::CalculateProgressBonus(uint32 currentSkill)
     return progressInTier * PROGRESS_BONUS_RATE;
 }
 
-void GatheringExperienceModule::OnLootItem(Player* player, Item* item, uint32 /*count*/, ObjectGuid /*lootguid*/)
+void GatheringExperienceModule::OnLootItem(Player* player, Item* item, [[maybe_unused]] uint32 count, [[maybe_unused]] ObjectGuid lootguid)
 {
     if (!enabled || !player || !item)
         return;
 
     uint32 itemId = item->GetEntry();
-    auto it = gatheringItems.find(itemId);
-    if (it == gatheringItems.end())
-        return;
+    uint32 xpGained = 0;
 
-    const GatheringItem& gatherItem = it->second;
-    uint32 experience = 0;
-
-    // Handle fishing items separately
-    if (gatherItem.profession == PROF_FISHING)
+    // Check each profession
+    if (sFishingExperience->IsFishingItem(itemId))
     {
-        LOG_DEBUG("module", "Processing fishing item {} for player {}", gatherItem.name, player->GetName());
-        experience = sFishingExperience->CalculateFishingExperience(player, itemId);
+        xpGained = sFishingExperience->CalculateFishingExperience(player, itemId);
     }
-    else
+    else if (sSkinningExperience->IsSkinningItem(itemId))
     {
-        // Get current skill level based on profession
-        uint32 currentSkill = 0;
-        switch (gatherItem.profession)
-        {
-            case PROF_MINING:
-                if (!miningEnabled) return;
-                currentSkill = player->GetSkillValue(SKILL_MINING);
-                break;
-            case PROF_HERBALISM:
-                if (!herbalismEnabled) return;
-                currentSkill = player->GetSkillValue(SKILL_HERBALISM);
-                break;
-            case PROF_SKINNING:
-                if (!skinningEnabled) return;
-                currentSkill = player->GetSkillValue(SKILL_SKINNING);
-                break;
-            default:
-                return;
-        }
-
-        experience = CalculateExperience(player, gatherItem.baseXP, gatherItem.requiredSkill, currentSkill, itemId);
+        xpGained = sSkinningExperience->CalculateSkinningExperience(player, itemId);
     }
 
-    if (experience > 0)
+    if (xpGained > 0)
     {
-        player->GiveXP(experience, nullptr);
-        LOG_DEBUG("module", "Player {} gained {} experience from gathering {}", 
-            player->GetName(), experience, gatherItem.name);
+        player->GiveXP(xpGained, nullptr);
     }
 }
 
