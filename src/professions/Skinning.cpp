@@ -110,7 +110,7 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
     LOG_INFO("module", "- Skill Level: {} ({} - {})", playerSkill, skillColor, skillMultiplier);
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
     LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
-    LOG_INFO("module", "- Normal XP (before rested): {}", normalXP);
+    LOG_INFO("module", "- Normal XP: {}", normalXP);
     LOG_INFO("module", "- Final XP: {}", finalXP);
 
     return finalXP;

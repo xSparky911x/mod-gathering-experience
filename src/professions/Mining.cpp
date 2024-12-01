@@ -10,15 +10,26 @@ MiningExperience* MiningExperience::instance()
 
 uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId)
 {
+    LOG_INFO("module", "Starting Mining XP calculation for item {}", itemId);
+
     if (!player || !IsMiningItem(itemId))
+    {
+        LOG_INFO("module", "Invalid player or not a mining item");
         return 0;
+    }
 
     if (!sGatheringExperience->IsMiningEnabled())
+    {
+        LOG_INFO("module", "Mining XP is disabled");
         return 0;
+    }
 
     auto gatherData = sGatheringExperience->GetGatheringData(itemId);
     if (!gatherData)
+    {
+        LOG_INFO("module", "No gather data found for item");
         return 0;
+    }
 
     uint32 baseXP = std::get<0>(*gatherData);
     uint32 requiredSkill = std::get<1>(*gatherData);
@@ -107,14 +118,22 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
     LOG_INFO("module", "- Base XP: {}", baseXP);
     LOG_INFO("module", "- Level Penalty: {} {}", levelPenalty, 
         levelPenalty < 1.0f ? fmt::format("({})", penaltyReason) : "");
+    LOG_INFO("module", "- Skill Level: {} ({} - {})", playerSkill, skillColor, skillMultiplier);
+    LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
+    LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
+    LOG_INFO("module", "- Normal XP: {}", normalXP);
+    LOG_INFO("module", "- Final XP: {}", finalXP);
 
     return finalXP;
 }
 
 bool MiningExperience::IsMiningItem(uint32 itemId) const
 {
-    // Implement your logic to determine if the item is a mining item
-    return false;
+    auto gatherData = sGatheringExperience->GetGatheringData(itemId);
+    if (!gatherData)
+        return false;
+
+    return std::get<2>(*gatherData) == PROF_MINING;
 }
 
 float MiningExperience::GetRarityMultiplier(uint32 itemId) const
