@@ -108,15 +108,6 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
     uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelPenalty * (1.0f + progressBonus) * zoneMult * rarityMult);
     uint32 finalXP = normalXP;
 
-    // Apply rested bonus if available
-    if (player->GetRestBonus() > 0)
-    {
-        uint32 restedXP = player->GetXPRestBonus(normalXP);
-        finalXP += restedXP;
-        float currentRestBonus = player->GetRestBonus();
-        player->SetRestBonus(currentRestBonus - (float(restedXP) / 2.0f));
-    }
-
     // Logging
     LOG_INFO("module", "Fishing XP Calculation for {}:", player->GetName());
     LOG_INFO("module", "- Fish: {} (Item ID: {})", itemName, itemId);
@@ -128,7 +119,6 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
     LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
     LOG_INFO("module", "- Normal XP (before rested): {}", normalXP);
-    LOG_INFO("module", "- Rested Bonus Applied: {}", finalXP - normalXP);
     LOG_INFO("module", "- Final XP: {}", finalXP);
     if (rarityMult > 1.0f)
     {

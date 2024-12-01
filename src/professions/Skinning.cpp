@@ -100,16 +100,6 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
     uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * zoneMult);
     uint32 finalXP = normalXP;
 
-    // Apply rested bonus if available
-    uint32 restedBonus = 0;
-    if (player->GetRestBonus() > 0)
-    {
-        restedBonus = normalXP; // 100% bonus for rested
-        finalXP += restedBonus;
-        float currentRestBonus = player->GetRestBonus();
-        player->SetRestBonus(currentRestBonus - (float(restedBonus) / 2.0f));
-    }
-
     // Detailed logging
     LOG_INFO("module", "Skinning XP Calculation for {}:", player->GetName());
     LOG_INFO("module", "- Item: {} (Item ID: {})", itemName, itemId);
@@ -121,7 +111,6 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
     LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
     LOG_INFO("module", "- Normal XP (before rested): {}", normalXP);
-    LOG_INFO("module", "- Rested Bonus Applied: {}", finalXP - normalXP);
     LOG_INFO("module", "- Final XP: {}", finalXP);
 
     return finalXP;
