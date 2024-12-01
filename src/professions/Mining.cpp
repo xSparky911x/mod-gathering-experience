@@ -50,12 +50,7 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
     // Skill level multiplier
     float skillMultiplier;
     std::string skillColor;
-    if (playerSkill < requiredSkill)
-    {
-        skillMultiplier = 0.1f; // Gray skill - minimal XP (too low skill)
-        skillColor = "Gray (Too Low)";
-    }
-    else if (playerSkill < requiredSkill + 25)
+    if (playerSkill < requiredSkill + 25)
     {
         skillMultiplier = 1.2f; // Orange skill - highest XP (challenging)
         skillColor = "Orange";
