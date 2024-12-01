@@ -69,12 +69,12 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
 
     // Get recommended level for this item based on base XP
     uint32 recommendedLevel = 1;
-    if (baseXP >= 600)           recommendedLevel = 70;  // Northrend
-    else if (baseXP >= 500)      recommendedLevel = 60;  // Outland
-    else if (baseXP >= 400)      recommendedLevel = 50;  // High vanilla
-    else if (baseXP >= 300)      recommendedLevel = 40;  // Mid-high vanilla
-    else if (baseXP >= 200)      recommendedLevel = 30;  // Mid vanilla
-    else if (baseXP >= 100)      recommendedLevel = 20;  // Low vanilla
+    if (baseXP >= 700)           recommendedLevel = 70;  // Northrend
+    else if (baseXP >= 600)      recommendedLevel = 60;  // Outland
+    else if (baseXP >= 500)      recommendedLevel = 50;  // High vanilla
+    else if (baseXP >= 400)      recommendedLevel = 40;  // Mid-high vanilla
+    else if (baseXP >= 300)      recommendedLevel = 30;  // Mid vanilla
+    else if (baseXP >= 200)      recommendedLevel = 20;  // Low vanilla
     else                         recommendedLevel = 10;  // Beginner
 
     int32 levelDiff = player->GetLevel() - recommendedLevel;
@@ -110,7 +110,6 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
     LOG_INFO("module", "- Skill Level: {} ({} - {})", playerSkill, skillColor, skillMultiplier);
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
     LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
-    LOG_INFO("module", "- Normal XP: {}", normalXP);
     LOG_INFO("module", "- Final XP: {}", finalXP);
 
     return finalXP;
