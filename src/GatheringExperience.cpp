@@ -11,6 +11,7 @@
 #include "GatheringExperience.h"
 #include "professions/Fishing.h"
 #include "professions/Skinning.h"
+#include "professions/Herbalism.h"
 
 GatheringExperienceModule* GatheringExperienceModule::instance = nullptr;
 
@@ -217,6 +218,10 @@ void GatheringExperienceModule::OnLootItem(Player* player, Item* item, [[maybe_u
     else if (sSkinningExperience->IsSkinningItem(itemId))
     {
         xpGained = sSkinningExperience->CalculateSkinningExperience(player, itemId);
+    }
+    else if (sHerbalismExperience->IsHerbalismItem(itemId))
+    {
+        xpGained = sHerbalismExperience->CalculateHerbalismExperience(player, itemId);
     }
 
     if (xpGained > 0)
