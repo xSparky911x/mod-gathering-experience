@@ -37,6 +37,7 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
     }
 
     float zoneMult = sGatheringExperience->GetZoneMultiplier(zoneId);
+    float rarityMult = GetRarityMultiplier(itemId);
 
     // Skill level multiplier
     float skillMultiplier;
@@ -93,7 +94,7 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
             recommendedLevel);
     }
 
-    uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * zoneMult);
+    uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * zoneMult * rarityMult);
     uint32 finalXP = std::min(normalXP, MAX_EXPERIENCE_GAIN);
 
     // Detailed logging
