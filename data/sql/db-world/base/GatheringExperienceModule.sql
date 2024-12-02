@@ -80,7 +80,7 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 -- Special Items
 (11370, 375, 230, 1, 'Dark Iron Ore'),
 (22202, 575, 305, 1, 'Small Obsidian Shard'),
-(22203, 625, 305, 1, 'Large Obsidian Shard'),
+(22203, 625, 305, 1, 'Large Obsidian Shard');
 
 -- ----------------------------------------
 -- Herbalism Data
