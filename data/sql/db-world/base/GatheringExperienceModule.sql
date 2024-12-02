@@ -77,41 +77,10 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (7911, 500, 205, 1, 'Truesilver Ore'),
 (23426, 700, 375, 1, 'Khorium Ore'),
 
--- Gems
-(774, 100, 1, 1, 'Malachite'),
-(818, 125, 1, 1, 'Tigerseye'),
-(1705, 300, 65, 1, 'Lesser Moonstone'),
-(1529, 275, 65, 1, 'Jade'),
-(1210, 100, 65, 1, 'Shadowgem'),
-(1206, 150, 65, 1, 'Moss Agate'),
-(3864, 300, 125, 1, 'Citrine'),
-(7909, 650, 155, 1, 'Aquamarine'),
-(12800, 650, 230, 1, 'Azerothian Diamond'),
-(12364, 700, 230, 1, 'Huge Emerald'),
-(12363, 750, 230, 1, 'Arcane Crystal'),
-(12799, 675, 230, 1, 'Large Opal'),
-(12361, 700, 230, 1, 'Blue Sapphire'),
-(7910, 625, 230, 1, 'Star Ruby'),
-(11754, 600, 300, 1, 'Black Diamond'),
-
--- Stone
-(2836, 50, 65, 1, 'Coarse Stone'),
-(2838, 75, 125, 1, 'Heavy Stone'),
-(7912, 125, 175, 1, 'Solid Stone'),
-(12365, 100, 230, 1, 'Dense Stone'),
-
 -- Special Items
 (11370, 375, 230, 1, 'Dark Iron Ore'),
-(19774, 675, 255, 1, 'Souldarite'),
-(11382, 800, 300, 1, 'Blood of the Mountain'),
 (22202, 575, 305, 1, 'Small Obsidian Shard'),
 (22203, 625, 305, 1, 'Large Obsidian Shard'),
-
--- Crystallized Elements
-(37705, 400, 350, 1, 'Crystallized Water'),
-(37701, 300, 350, 1, 'Crystallized Earth'),
-(37703, 350, 400, 1, 'Crystallized Shadow'),
-(37702, 325, 450, 1, 'Crystallized Fire');
 
 -- ----------------------------------------
 -- Herbalism Data
