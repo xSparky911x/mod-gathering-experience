@@ -10,7 +10,7 @@
 #include "StringFormat.h"
 
 // Constants
-const uint32 GATHERING_MAX_LEVEL = 80;
+const uint32 GATHERING_MAX_LEVEL = 79;
 const uint32 MAX_EXPERIENCE_GAIN = 5000;
 const uint32 MIN_EXPERIENCE_GAIN = 10;
 extern const char* GATHERING_EXPERIENCE_VERSION;
