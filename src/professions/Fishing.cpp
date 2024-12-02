@@ -98,11 +98,11 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
         zoneName = area->area_name[0];
     }
 
-    bool isCity = sGatheringExperience->IsCityZone(zoneId);
     float zoneMult = sGatheringExperience->GetZoneMultiplier(zoneId);
-    if (isCity)
+
+    if (sGatheringExperience->IsCityZone(zoneId))
     {
-        zoneMult = std::min(1.5f, zoneMult);
+        zoneMult *= 0.5f;  // 50% penalty in cities since they're safe zones
     }
 
     float rarityMult = GetRarityMultiplier(itemId);
@@ -112,7 +112,7 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
     // Logging
     LOG_INFO("module", "Fishing XP Calculation for {}:", player->GetName());
     LOG_INFO("module", "- Fish: {} (Item ID: {})", itemName, itemId);
-    LOG_INFO("module", "- Zone: {} (ID: {}) {}", zoneName, zoneId, isCity ? "[City]" : "");
+    LOG_INFO("module", "- Zone: {} (ID: {}) {}", zoneName, zoneId, "");
     LOG_INFO("module", "- Base XP: {}", baseXP);
     LOG_INFO("module", "- Level Penalty: {} {}", levelPenalty, 
         levelPenalty < 1.0f ? fmt::format("({})", penaltyReason) : "");

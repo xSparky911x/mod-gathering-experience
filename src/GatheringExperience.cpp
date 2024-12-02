@@ -179,12 +179,6 @@ uint32 GatheringExperienceModule::CalculateExperience(Player* player, uint32 bas
         zoneMultiplier = zoneIt->second;
     }
 
-    // Check if in a city
-    if (IsCityZone(player->GetZoneId()))
-    {
-        zoneMultiplier *= 0.5f; // 50% reduction in cities
-    }
-
     // Calculate progress bonus
     float progressBonus = CalculateProgressBonus(currentSkill);
 
