@@ -57,7 +57,8 @@ void GatheringExperienceModule::LoadGatheringData()
     gatheringItems.clear();
 
     // Load gathering items
-    if (QueryResult result = WorldDatabase.Query("SELECT item_id, base_xp, required_skill, profession, name, COALESCE(rarity, 0) as rarity FROM gathering_experience"))
+    if (QueryResult result = WorldDatabase.Query(
+        "SELECT item_id, base_xp, required_skill, profession, name FROM gathering_experience"))
     {
         uint32 count = 0;
         do
@@ -69,7 +70,7 @@ void GatheringExperienceModule::LoadGatheringData()
             item.requiredSkill = fields[2].Get<uint32>();
             item.profession = fields[3].Get<uint8>();
             item.name = fields[4].Get<std::string>();
-            item.rarity = fields[5].Get<uint8>();
+            item.rarity = 0; // Default to common if not specified
             gatheringItems[itemId] = item;
             count++;
         } while (result->NextRow());

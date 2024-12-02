@@ -116,6 +116,13 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
     LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
     LOG_INFO("module", "- Final XP: {}", finalXP);
+    if (rarityMult > 1.0f)
+    {
+        std::string rarityText = (rarityMult == 1.5f) ? "Rare" : "Uncommon";
+        LOG_INFO("module", "- Rarity: {} (+{}% bonus)", 
+            rarityText, 
+            static_cast<int>((rarityMult - 1.0f) * 100));
+    }
 
     return finalXP;
 }
