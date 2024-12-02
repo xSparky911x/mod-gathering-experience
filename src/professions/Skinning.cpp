@@ -76,20 +76,21 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
     float levelPenalty = 1.0f;
     std::string penaltyReason;
 
-    if (levelDiff < -20)  // Way too low level
+    if (levelDiff < 0)  // Player is below recommended level
     {
-        levelPenalty = 0.4f;
-        penaltyReason = fmt::format("reduced (level {} << {})", player->GetLevel(), recommendedLevel);
+        levelPenalty = std::max(0.4f, 1.0f - (std::abs(levelDiff) * 0.03f));
+        penaltyReason = fmt::format("reduced by {}% (level {} < {})", 
+            static_cast<int>((1.0f - levelPenalty) * 100), 
+            player->GetLevel(), 
+            recommendedLevel);
     }
-    else if (levelDiff < -10)  // Moderately low level
+    else if (levelDiff > 0)  // Player is above recommended level
     {
-        levelPenalty = 0.75f;
-        penaltyReason = fmt::format("slightly reduced (level {} < {})", player->GetLevel(), recommendedLevel);
-    }
-    else if (levelDiff >= 10)  // Over level
-    {
-        levelPenalty = 0.5f;
-        penaltyReason = fmt::format("reduced (level {} > {})", player->GetLevel(), recommendedLevel);
+        levelPenalty = std::max(0.4f, 1.0f - (levelDiff * 0.03f));
+        penaltyReason = fmt::format("reduced by {}% (level {} > {})", 
+            static_cast<int>((1.0f - levelPenalty) * 100), 
+            player->GetLevel(), 
+            recommendedLevel);
     }
 
     uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * zoneMult);
