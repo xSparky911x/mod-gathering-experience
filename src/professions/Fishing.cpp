@@ -106,7 +106,7 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
 
     float rarityMult = GetRarityMultiplier(itemId);
     uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelPenalty * (1.0f + progressBonus) * zoneMult * rarityMult);
-    uint32 finalXP = normalXP;
+    uint32 finalXP = std::min(normalXP, MAX_EXPERIENCE_GAIN);
 
     // Logging
     LOG_INFO("module", "Fishing XP Calculation for {}:", player->GetName());

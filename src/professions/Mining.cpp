@@ -102,7 +102,7 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
     }
 
     uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * zoneMult);
-    uint32 finalXP = normalXP;
+    uint32 finalXP = std::min(normalXP, MAX_EXPERIENCE_GAIN);
 
     // Detailed logging
     LOG_INFO("module", "Mining XP Calculation for {}:", player->GetName());
@@ -130,6 +130,18 @@ bool MiningExperience::IsMiningItem(uint32 itemId) const
 
 float MiningExperience::GetRarityMultiplier(uint32 itemId) const
 {
-    // Implement your logic to determine the rarity multiplier for the item
-    return 1.0f;
+    auto gatherData = sGatheringExperience->GetGatheringData(itemId);
+    if (!gatherData)
+        return 1.0f;
+
+    uint8 rarity = std::get<4>(*gatherData);
+    switch (rarity)
+    {
+        case 1:  // Uncommon
+            return 1.25f;
+        case 2:  // Rare
+            return 1.5f;
+        default: // Common or any invalid value
+            return 1.0f;
+    }
 } 
