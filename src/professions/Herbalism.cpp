@@ -76,10 +76,6 @@ uint32 HerbalismExperience::CalculateHerbalismExperience(Player* player, uint32 
     float levelPenalty = 1.0f;
     std::string penaltyReason;
 
-   int32 levelDiff = player->GetLevel() - recommendedLevel;
-    float levelPenalty = 1.0f;
-    std::string penaltyReason;
-
     if (levelDiff < -10)  // Player is below recommended level
     {
         float penaltyLevels = std::abs(levelDiff) - 10;  // Only count levels after -10

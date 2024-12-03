@@ -72,7 +72,7 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
     else if (baseXP >= 200)      recommendedLevel = 20;  // Low vanilla
     else                         recommendedLevel = 10;  // Beginner
 
-   int32 levelDiff = player->GetLevel() - recommendedLevel;
+    int32 levelDiff = player->GetLevel() - recommendedLevel;
     float levelPenalty = 1.0f;
     std::string penaltyReason;
 
