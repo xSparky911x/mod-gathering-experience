@@ -45,7 +45,6 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
         zoneName = area->area_name[0];
     }
 
-    float zoneMult = sGatheringExperience->GetZoneMultiplier(zoneId);
     float rarityMult = GetRarityMultiplier(itemId);
 
     // Skill level multiplier
@@ -96,19 +95,17 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
             recommendedLevel);
     }
 
-    uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * zoneMult * rarityMult);
+    uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * rarityMult);
     uint32 finalXP = std::min(normalXP, MAX_EXPERIENCE_GAIN);
 
     // Detailed logging
     LOG_INFO("module", "Mining XP Calculation for {}:", player->GetName());
     LOG_INFO("module", "- Item: {} (Item ID: {})", itemName, itemId);
-    LOG_INFO("module", "- Zone: {} (ID: {})", zoneName, zoneId);
     LOG_INFO("module", "- Base XP: {}", baseXP);
     LOG_INFO("module", "- Level Penalty: {} {}", levelPenalty, 
         levelPenalty < 1.0f ? fmt::format("({})", penaltyReason) : "");
     LOG_INFO("module", "- Skill Level: {} ({} - {})", playerSkill, skillColor, skillMultiplier);
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
-    LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
     LOG_INFO("module", "- Final XP: {}", finalXP);
     if (rarityMult > 1.0f)
     {

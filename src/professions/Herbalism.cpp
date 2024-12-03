@@ -36,7 +36,6 @@ uint32 HerbalismExperience::CalculateHerbalismExperience(Player* player, uint32 
         zoneName = area->area_name[0];
     }
 
-    float zoneMult = sGatheringExperience->GetZoneMultiplier(zoneId);
     float rarityMult = GetRarityMultiplier(itemId);
 
     // Skill level multiplier
@@ -77,36 +76,31 @@ uint32 HerbalismExperience::CalculateHerbalismExperience(Player* player, uint32 
     float levelPenalty = 1.0f;
     std::string penaltyReason;
 
-    if (levelDiff < 0)  // Player is below recommended level
+   int32 levelDiff = player->GetLevel() - recommendedLevel;
+    float levelPenalty = 1.0f;
+    std::string penaltyReason;
+
+    if (levelDiff < -10)  // Player is below recommended level
     {
-        levelPenalty = std::max(0.4f, 1.0f - (std::abs(levelDiff) * 0.03f));
+        float penaltyLevels = std::abs(levelDiff) - 10;  // Only count levels after -10
+        levelPenalty = std::max(0.10f, 1.0f - (penaltyLevels * 0.02f)); // Penalty increases by 2% per level below recommendedto a max of 90% penalty
         penaltyReason = fmt::format("reduced by {}% (level {} < {})", 
             static_cast<int>((1.0f - levelPenalty) * 100), 
             player->GetLevel(), 
             recommendedLevel);
     }
-    else if (levelDiff > 0)  // Player is above recommended level
-    {
-        levelPenalty = std::max(0.4f, 1.0f - (levelDiff * 0.03f));
-        penaltyReason = fmt::format("reduced by {}% (level {} > {})", 
-            static_cast<int>((1.0f - levelPenalty) * 100), 
-            player->GetLevel(), 
-            recommendedLevel);
-    }
 
-    uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * zoneMult * rarityMult);
+    uint32 normalXP = static_cast<uint32>(baseXP * skillMultiplier * levelPenalty * (1.0f + progressBonus) * rarityMult);
     uint32 finalXP = std::min(normalXP, MAX_EXPERIENCE_GAIN);
 
     // Detailed logging
     LOG_INFO("module", "Herbalism XP Calculation for {}:", player->GetName());
     LOG_INFO("module", "- Item: {} (Item ID: {})", itemName, itemId);
-    LOG_INFO("module", "- Zone: {} (ID: {})", zoneName, zoneId);
     LOG_INFO("module", "- Base XP: {}", baseXP);
     LOG_INFO("module", "- Level Penalty: {} {}", levelPenalty, 
         levelPenalty < 1.0f ? fmt::format("({})", penaltyReason) : "");
     LOG_INFO("module", "- Skill Level: {} ({} - {})", playerSkill, skillColor, skillMultiplier);
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
-    LOG_INFO("module", "- Zone Multiplier: {}", zoneMult);
     LOG_INFO("module", "- Final XP: {}", finalXP);
     if (rarityMult > 1.0f)
     {
