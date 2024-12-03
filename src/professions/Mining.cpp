@@ -86,18 +86,11 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
     float levelPenalty = 1.0f;
     std::string penaltyReason;
 
-    if (levelDiff < 0)  // Player is below recommended level
+    if (levelDiff < -10)  // Player is below recommended level
     {
-        levelPenalty = std::max(0.4f, 1.0f - (std::abs(levelDiff) * 0.03f));
+        float penaltyLevels = std::abs(levelDiff) - 10;  // Only count levels after -10
+        levelPenalty = std::max(0.10f, 1.0f - (penaltyLevels * 0.02f)); // Penalty increases by 2% per level below recommendedto a max of 90% penalty
         penaltyReason = fmt::format("reduced by {}% (level {} < {})", 
-            static_cast<int>((1.0f - levelPenalty) * 100), 
-            player->GetLevel(), 
-            recommendedLevel);
-    }
-    else if (levelDiff > 0)  // Player is above recommended level
-    {
-        levelPenalty = std::max(0.4f, 1.0f - (levelDiff * 0.03f));
-        penaltyReason = fmt::format("reduced by {}% (level {} > {})", 
             static_cast<int>((1.0f - levelPenalty) * 100), 
             player->GetLevel(), 
             recommendedLevel);
