@@ -164,7 +164,7 @@ uint32 GatheringExperienceModule::CalculateExperience(Player* player, uint32 bas
         return 0;
 
     uint32 playerLevel = player->GetLevel();
-    if (playerLevel > GATHERING_MAX_LEVEL)
+    if (playerLevel >= GATHERING_MAX_LEVEL)
         return 0;
 
     // Check skill requirement
