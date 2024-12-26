@@ -63,56 +63,42 @@ public:
     {
         if (!*args)
         {
-            handler->SendSysMessage("Usage: .gathering add #itemId #baseXP #requiredSkill #profession #multiplier #name");
+            handler->SendSysMessage("Usage: .gathering add #itemId #baseXP #requiredSkill #profession \"name\"");
             handler->SendSysMessage("Professions: 1=Mining, 2=Herbalism, 3=Skinning, 4=Fishing");
-            handler->SendSysMessage("Multiplier Examples: 1.0=Normal, 1.5=50% bonus, 2.0=100% bonus");
+            handler->SendSysMessage("Example: .gathering add 2447 100 1 2 \"Peacebloom\"");
             return true;
         }
 
         char* itemIdStr = strtok((char*)args, " ");
-        char* baseXPStr = strtok(nullptr, " ");
-        char* reqSkillStr = strtok(nullptr, " ");
-        char* professionStr = strtok(nullptr, " ");
-        char* multiplierStr = strtok(nullptr, " ");
-        char* nameStr = strtok(nullptr, "\n");
+        char* baseXPStr = strtok(NULL, " ");
+        char* requiredSkillStr = strtok(NULL, " ");
+        char* professionStr = strtok(NULL, " ");
+        char* name = strtok(NULL, "\r");
 
-        if (!itemIdStr || !baseXPStr || !reqSkillStr || !professionStr || !multiplierStr || !nameStr)
+        if (!itemIdStr || !baseXPStr || !requiredSkillStr || !professionStr || !name)
         {
-            handler->SendSysMessage("Usage: .gathering add #itemId #baseXP #requiredSkill #profession #multiplier #name");
-            handler->SendSysMessage("Professions: 1=Mining, 2=Herbalism, 3=Skinning, 4=Fishing");
-            handler->SendSysMessage("Multiplier Examples: 1.0=Normal, 1.5=50% bonus, 2.0=100% bonus");
+            handler->SendSysMessage("Missing required arguments.");
+            handler->SendSysMessage("Usage: .gathering add #itemId #baseXP #requiredSkill #profession \"name\"");
             return false;
         }
 
         uint32 itemId = atoi(itemIdStr);
         uint32 baseXP = atoi(baseXPStr);
-        uint32 reqSkill = atoi(reqSkillStr);
-        std::string profName = professionStr;
-        float multiplier = atof(multiplierStr);
+        uint32 requiredSkill = atoi(requiredSkillStr);
+        uint32 profession = atoi(professionStr);
 
-        uint8 professionId = GetProfessionIdByName(profName);
-        if (professionId == 0)
+        if (profession < 1 || profession > 4)
         {
-            handler->PSendSysMessage("Invalid profession: {}", profName);
-            handler->SendSysMessage("Valid professions: Mining, Herbalism, Skinning, Fishing");
+            handler->SendSysMessage("Invalid profession ID. Must be 1-4.");
             return false;
         }
-
-        WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, multiplier, name) VALUES ({}, {}, {}, {}, {}, '{}')",
-            itemId, baseXP, reqSkill, professionId, multiplier, nameStr);
 
         WorldDatabase.DirectExecute(
-            "INSERT INTO gathering_experience_rarity (item_id, multiplier) VALUES ({}, {})",
-            itemId, multiplier);
+            "INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) "
+            "VALUES ({}, {}, {}, {}, '{}')",
+            itemId, baseXP, requiredSkill, profession, name);
 
-        if (!GatheringExperienceModule::instance)
-        {
-            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
-            return false;
-        }
-
-        GatheringExperienceModule::instance->LoadDataFromDB();
-        handler->PSendSysMessage("Added gathering item {} to database for profession {} and reloaded data.", itemId, profName);
+        handler->PSendSysMessage("Added gathering experience entry for item {}.", itemId);
         return true;
     }
 
