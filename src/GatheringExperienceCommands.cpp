@@ -63,9 +63,9 @@ public:
     {
         if (!*args)
         {
-            handler->SendSysMessage("Usage: .gatherxp add #itemId #baseXP #requiredSkill #profession #rarity #name");
+            handler->SendSysMessage("Usage: .gathering add #itemId #baseXP #requiredSkill #profession #multiplier #name");
             handler->SendSysMessage("Professions: 1=Mining, 2=Herbalism, 3=Skinning, 4=Fishing");
-            handler->SendSysMessage("Rarity: 0=Common, 1=Uncommon, 2=Rare");
+            handler->SendSysMessage("Multiplier Examples: 1.0=Normal, 1.5=50% bonus, 2.0=100% bonus");
             return true;
         }
 
@@ -73,14 +73,14 @@ public:
         char* baseXPStr = strtok(nullptr, " ");
         char* reqSkillStr = strtok(nullptr, " ");
         char* professionStr = strtok(nullptr, " ");
-        char* rarityStr = strtok(nullptr, " ");
+        char* multiplierStr = strtok(nullptr, " ");
         char* nameStr = strtok(nullptr, "\n");
 
-        if (!itemIdStr || !baseXPStr || !reqSkillStr || !professionStr || !rarityStr || !nameStr)
+        if (!itemIdStr || !baseXPStr || !reqSkillStr || !professionStr || !multiplierStr || !nameStr)
         {
-            handler->SendSysMessage("Usage: .gatherxp add #itemId #baseXP #requiredSkill #profession #rarity #name");
+            handler->SendSysMessage("Usage: .gathering add #itemId #baseXP #requiredSkill #profession #multiplier #name");
             handler->SendSysMessage("Professions: 1=Mining, 2=Herbalism, 3=Skinning, 4=Fishing");
-            handler->SendSysMessage("Rarity: 0=Common, 1=Uncommon, 2=Rare");
+            handler->SendSysMessage("Multiplier Examples: 1.0=Normal, 1.5=50% bonus, 2.0=100% bonus");
             return false;
         }
 
@@ -88,7 +88,7 @@ public:
         uint32 baseXP = atoi(baseXPStr);
         uint32 reqSkill = atoi(reqSkillStr);
         std::string profName = professionStr;
-        uint8 rarity = atoi(rarityStr);
+        float multiplier = atof(multiplierStr);
 
         uint8 professionId = GetProfessionIdByName(profName);
         if (professionId == 0)
@@ -98,8 +98,12 @@ public:
             return false;
         }
 
-        WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, rarity, name) VALUES ({}, {}, {}, {}, {}, '{}')",
-            itemId, baseXP, reqSkill, professionId, rarity, nameStr);
+        WorldDatabase.DirectExecute("INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, multiplier, name) VALUES ({}, {}, {}, {}, {}, '{}')",
+            itemId, baseXP, reqSkill, professionId, multiplier, nameStr);
+
+        WorldDatabase.DirectExecute(
+            "INSERT INTO gathering_experience_rarity (item_id, multiplier) VALUES ({}, {})",
+            itemId, multiplier);
 
         if (!GatheringExperienceModule::instance)
         {
@@ -125,7 +129,7 @@ public:
 
         // Get item details before removing
         QueryResult result = WorldDatabase.Query(
-            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
+            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.multiplier, ge.name "
             "FROM gathering_experience ge "
             "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
             "WHERE ge.item_id = {}", itemId);
@@ -137,6 +141,10 @@ public:
         }
 
         WorldDatabase.DirectExecute("DELETE FROM gathering_experience WHERE item_id = {}", itemId);
+
+        WorldDatabase.DirectExecute(
+            "DELETE FROM gathering_experience_rarity WHERE item_id = {}", 
+            itemId);
 
         if (!GatheringExperienceModule::instance)
         {
@@ -154,7 +162,7 @@ public:
         if (!*args)
         {
             handler->SendSysMessage("Usage: .gathering modify <itemId> <field> <value>");
-            handler->SendSysMessage("Fields: basexp, reqskill, profession, rarity, name");
+            handler->SendSysMessage("Fields: basexp, reqskill, profession, multiplier, name");
             return true;
         }
 
@@ -164,7 +172,7 @@ public:
         if (!itemIdStr || !fieldStr)
         {
             handler->SendSysMessage("Usage: .gathering modify <itemId> <field> <value>");
-            handler->SendSysMessage("Fields: basexp, reqskill, profession, rarity, name");
+            handler->SendSysMessage("Fields: basexp, reqskill, profession, multiplier, name");
             return false;
         }
 
@@ -229,20 +237,20 @@ public:
                 }
                 query += Acore::StringFormat("profession = {}", professionId);
             }
-            else if (field == "rarity")
+            else if (field == "multiplier")
             {
-                uint8 rarity = atoi(value.c_str());
-                if (rarity > 2)  // 0=Common, 1=Uncommon, 2=Rare
+                float multiplier = atof(value.c_str());
+                if (multiplier <= 0.0f)
                 {
-                    handler->SendSysMessage("Invalid rarity value. Use: 0=Common, 1=Uncommon, 2=Rare");
+                    handler->SendSysMessage("Multiplier must be greater than 0.");
                     return false;
                 }
-                query += Acore::StringFormat("rarity = {}", rarity);
+                query += Acore::StringFormat("multiplier = {}", multiplier);
             }
             else
             {
                 handler->SendSysMessage("Invalid field specified.");
-                handler->SendSysMessage("Valid fields: basexp, reqskill, profession, rarity, name");
+                handler->SendSysMessage("Valid fields: basexp, reqskill, profession, multiplier, name");
                 return false;
             }
         }
@@ -261,20 +269,21 @@ public:
         
         // Show updated item details AFTER reload
         QueryResult result = WorldDatabase.Query(
-            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
+            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, COALESCE(ger.multiplier, 1.0) as multiplier, ge.name "
             "FROM gathering_experience ge "
             "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
+            "LEFT JOIN gathering_experience_rarity ger ON ge.item_id = ger.item_id "
             "WHERE ge.item_id = {}", itemId);
 
         if (result)
         {
             Field* fields = result->Fetch();
-            handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Rarity: {}, Name: {}",
+            handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Multiplier: {:.2f}, Name: {}",
                 fields[0].Get<uint32>(),
                 fields[1].Get<uint32>(),
                 fields[2].Get<uint32>(),
                 fields[3].Get<std::string>(),
-                fields[4].Get<uint8>(),
+                fields[4].Get<float>(),
                 fields[5].Get<std::string>());
         }
 
@@ -287,9 +296,10 @@ public:
         {
             // List all items
             QueryResult result = WorldDatabase.Query(
-                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
+                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, COALESCE(ger.multiplier, 1.0) as multiplier, ge.name "
                 "FROM gathering_experience ge "
                 "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
+                "LEFT JOIN gathering_experience_rarity ger ON ge.item_id = ger.item_id "
                 "ORDER BY gep.name, ge.required_skill");
 
             if (!result)
@@ -302,12 +312,12 @@ public:
             do
             {
                 Field* fields = result->Fetch();
-                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Rarity: {}, Name: {}",
+                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Multiplier: {:.2f}, Name: {}",
                     fields[0].Get<uint32>(),    // ItemID
                     fields[1].Get<uint32>(),    // BaseXP
                     fields[2].Get<uint32>(),    // ReqSkill
                     fields[3].Get<std::string>(), // Profession name
-                    fields[4].Get<uint8>(),    // Rarity
+                    fields[4].Get<float>(),    // Multiplier
                     fields[5].Get<std::string>()); // Item name
             } while (result->NextRow());
         }
@@ -319,9 +329,10 @@ public:
             std::transform(profName.begin(), profName.end(), profName.begin(), ::tolower);
 
             QueryResult result = WorldDatabase.Query(
-                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.rarity, ge.name "
+                "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, COALESCE(ger.multiplier, 1.0) as multiplier, ge.name "
                 "FROM gathering_experience ge "
                 "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
+                "LEFT JOIN gathering_experience_rarity ger ON ge.item_id = ger.item_id "
                 "WHERE LOWER(gep.name) = '{}' "
                 "ORDER BY ge.required_skill", profName);
 
@@ -335,11 +346,11 @@ public:
             do
             {
                 Field* fields = result->Fetch();
-                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Rarity: {}, Name: {}",
+                handler->PSendSysMessage("ItemID: {}, BaseXP: {}, ReqSkill: {}, Multiplier: {:.2f}, Name: {}",
                     fields[0].Get<uint32>(),    // ItemID
                     fields[1].Get<uint32>(),    // BaseXP
                     fields[2].Get<uint32>(),    // ReqSkill
-                    fields[4].Get<uint8>(),    // Rarity
+                    fields[4].Get<float>(),    // Multiplier
                     fields[5].Get<std::string>()); // Item name
             } while (result->NextRow());
         }
@@ -370,17 +381,15 @@ public:
         handler->SendSysMessage("Gathering Experience Module Commands:");
         handler->SendSysMessage("  .gathering version - Shows module version");
         handler->SendSysMessage("  .gathering reload - Reloads data from database");
-        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <reqSkill> <profession> <rarity> <name>");
+        handler->SendSysMessage("  .gathering add <itemId> <baseXP> <reqSkill> <profession> <multiplier> <name>");
         handler->SendSysMessage("  .gathering remove <itemId>");
         handler->SendSysMessage("  .gathering modify <itemId> <field> <value>");
-        handler->SendSysMessage("    Fields: basexp, reqskill, profession, rarity, name");
         handler->SendSysMessage("  .gathering list [profession]");
-        handler->SendSysMessage("  .gathering zone add <zoneId> <multiplier> <zoneName>");
-        handler->SendSysMessage("  .gathering zone remove <zoneId>");
-        handler->SendSysMessage("  .gathering zone modify <zoneId> <field> <value>");
-        handler->SendSysMessage("  .gathering zone list");
-        handler->SendSysMessage("  .gathering currentzone - Shows current zone info and multiplier");
-        handler->SendSysMessage("  Valid professions: Mining, Herbalism, Skinning, Fishing");
+        handler->SendSysMessage("  .gathering zone <zoneId> <multiplier>");
+        handler->SendSysMessage("  .gathering currentzone");
+        handler->SendSysMessage("  .gathering toggle <profession>");
+        handler->SendSysMessage("  .gathering status");
+        handler->SendSysMessage("Fields for modify: basexp, reqskill, profession, multiplier, name");
         return true;
     }
 
