@@ -39,6 +39,17 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_zones` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ----------------------------------------
+-- Rarity Table Creation
+-- ----------------------------------------
+
+CREATE TABLE IF NOT EXISTS `gathering_experience_rarity` (
+    `item_id` INT UNSIGNED NOT NULL,
+    `multiplier` FLOAT NOT NULL DEFAULT '1',
+    PRIMARY KEY (`item_id`),
+    FOREIGN KEY (`item_id`) REFERENCES `gathering_experience` (`item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------------------
 -- Initial Data Setup
 -- ----------------------------------------
 
@@ -342,6 +353,44 @@ INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALU
 (4820, 1.4, 'Zul''Drak'),
 (4922, 1.4, 'Crystalsong Forest'),
 (4298, 1.0, 'Plaguelands: The Scarlet Enclave');
+
+-- ----------------------------------------
+-- Rarity Data
+-- ----------------------------------------
+
+INSERT IGNORE INTO `gathering_experience_rarity` (`item_id`, `multiplier`) VALUES
+(6522, 2),      -- Deviate Fish
+(7910, 2),
+(7911, 1.5),    -- Truesilver Ore
+(8836, 1.5),    -- Arthas' Tears
+(8838, 1.5),    -- Sungrass
+(8845, 2.5),    -- Ghost Mushroom
+(10620, 1.5),   -- Thorium Ore
+(11382, 2),
+(12363, 2.5),
+(12364, 2),
+(12800, 2),
+(13463, 1.5),   -- Dreamfoil
+(13467, 3),     -- Icecap
+(13468, 3),     -- Black Lotus
+(13757, 1.5),   -- Lightning Eel
+(13888, 1.5),   -- Darkclaw Lobster
+(15410, 3),     -- Scale of Onyxia
+(15414, 1.5),   -- Red Dragonscale
+(15416, 1.5),   -- Black Dragonscale
+(15417, 1.5),   -- Devilsaur Leather
+(15419, 2.5),   -- Pristine Hide of the Beast
+(15423, 2.5),   -- Brilliant Chromatic Scale
+(22203, 2),     -- Large Obsidian Shard
+(22793, 2),     -- Mana Thistle
+(23426, 2),     -- Khorium Ore
+(25707, 2),     -- Fel Hide
+(36908, 2.5),   -- Frost Lotus
+(36910, 2),     -- Titanium Ore
+(41802, 2),     -- Imperial Manta Ray
+(41807, 2),     -- Glacial Salmon
+(41813, 2),     -- Succulent Orca Steak
+(44128, 1.5);   -- Arctic Fur
 
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 
