@@ -76,10 +76,9 @@ uint32 HerbalismExperience::CalculateHerbalismExperience(Player* player, uint32 
     float levelPenalty = 1.0f;
     std::string penaltyReason;
 
-    if (levelDiff < -10)  // Player is below recommended level
+    if (levelDiff < 0)  // Player is below recommended level
     {
-        float penaltyLevels = std::abs(levelDiff) - 10;  // Only count levels after -10
-        levelPenalty = std::max(0.10f, 1.0f - (penaltyLevels * 0.02f)); // Penalty increases by 2% per level below recommendedto a max of 90% penalty
+        levelPenalty = std::max(0.4f, 1.0f - (std::abs(levelDiff) * 0.03f));
         penaltyReason = fmt::format("reduced by {}% (level {} < {})", 
             static_cast<int>((1.0f - levelPenalty) * 100), 
             player->GetLevel(), 
@@ -97,6 +96,7 @@ uint32 HerbalismExperience::CalculateHerbalismExperience(Player* player, uint32 
         levelPenalty < 1.0f ? fmt::format("({})", penaltyReason) : "");
     LOG_INFO("module", "- Skill Level: {} ({} - {})", playerSkill, skillColor, skillMultiplier);
     LOG_INFO("module", "- Progress Bonus: {}", progressBonus);
+    LOG_INFO("module", "- Normal XP: {}", normalXP);
     LOG_INFO("module", "- Final XP: {}", finalXP);
     if (rarityMult > 1.0f)
     {
