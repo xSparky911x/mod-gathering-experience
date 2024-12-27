@@ -41,7 +41,7 @@ uint32 HerbalismExperience::CalculateHerbalismExperience(Player* player, uint32 
     // Skill level multiplier
     float skillMultiplier;
     std::string skillColor;
-    if (playerSkill < requiredSkill + 25)
+    if (playerSkill >= requiredSkill && playerSkill < requiredSkill + 25)
     {
         skillMultiplier = 1.2f; // Orange skill - highest XP (challenging)
         skillColor = "Orange";
@@ -51,7 +51,7 @@ uint32 HerbalismExperience::CalculateHerbalismExperience(Player* player, uint32 
         skillMultiplier = 1.0f; // Yellow skill - normal XP (moderate)
         skillColor = "Yellow";
     }
-    else if (playerSkill < requiredSkill + 75)
+    else if (playerSkill < requiredSkill + 100)
     {
         skillMultiplier = 0.8f; // Green skill - reduced XP (easy)
         skillColor = "Green";
