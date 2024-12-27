@@ -73,9 +73,9 @@ public:
         char* baseXPStr = strtok(NULL, " ");
         char* requiredSkillStr = strtok(NULL, " ");
         char* professionStr = strtok(NULL, " ");
-        char* name = strtok(NULL, "\r");
+        char* rawName = strtok(NULL, "\0");
 
-        if (!itemIdStr || !baseXPStr || !requiredSkillStr || !professionStr || !name)
+        if (!itemIdStr || !baseXPStr || !requiredSkillStr || !professionStr || !rawName)
         {
             handler->SendSysMessage("Missing required arguments.");
             handler->SendSysMessage("Usage: .gathering add #itemId #baseXP #requiredSkill #profession \"name\"");
@@ -93,11 +93,34 @@ public:
             return false;
         }
 
+        // Get the raw name string
+        std::string name = rawName;
+        while (!name.empty() && (name[0] == '"' || name[0] == ' '))
+            name = name.substr(1);
+        while (!name.empty() && (name.back() == '"' || name.back() == ' '))
+            name.pop_back();
+
+        // Handle apostrophes in names
+        std::string escapedName = name;
+        size_t pos = 0;
+        while ((pos = escapedName.find("'", pos)) != std::string::npos) {
+            escapedName.replace(pos, 1, "''");
+            pos += 2;
+        }
+
         WorldDatabase.DirectExecute(
             "INSERT INTO gathering_experience (item_id, base_xp, required_skill, profession, name) "
             "VALUES ({}, {}, {}, {}, '{}')",
-            itemId, baseXP, requiredSkill, profession, name);
+            itemId, baseXP, requiredSkill, profession, escapedName);
 
+        // Force reload of data after adding
+        if (!GatheringExperienceModule::instance)
+        {
+            handler->PSendSysMessage("Failed to reload data after adding item {}.", itemId);
+            return false;
+        }
+
+        GatheringExperienceModule::instance->LoadDataFromDB();
         handler->PSendSysMessage("Added gathering experience entry for item {}.", itemId);
         return true;
     }
@@ -132,9 +155,10 @@ public:
             "DELETE FROM gathering_experience_rarity WHERE item_id = {}", 
             itemId);
 
+        // Force reload of data after removing
         if (!GatheringExperienceModule::instance)
         {
-            handler->PSendSysMessage("Failed to reload Gathering Experience data.");
+            handler->PSendSysMessage("Failed to reload data after removing item {}.", itemId);
             return false;
         }
 
