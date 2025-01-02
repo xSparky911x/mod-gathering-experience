@@ -25,7 +25,34 @@ void GatheringExperienceModule::LoadDataFromDB()
     
     LoadSettingsFromDB();
     LoadGatheringData();
-    LoadZoneData();
+
+    // Load zone multipliers
+    QueryResult result = WorldDatabase.Query("SELECT * FROM gathering_experience_zones");
+    if (result)
+    {
+        uint32 count = 0;
+        do
+        {
+            Field* fields = result->Fetch();
+            zoneMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
+            count++;
+        } while (result->NextRow());
+        LOG_INFO("module", "Loaded {} zone multipliers", count);
+    }
+
+    // Load rarity multipliers
+    result = WorldDatabase.Query("SELECT * FROM gathering_experience_rarity");
+    if (result)
+    {
+        uint32 count = 0;
+        do
+        {
+            Field* fields = result->Fetch();
+            zoneMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
+            count++;
+        } while (result->NextRow());
+        LOG_INFO("module", "Loaded {} rarity multipliers", count);
+    }
 }
 
 void GatheringExperienceModule::LoadSettingsFromDB()
@@ -74,49 +101,11 @@ void GatheringExperienceModule::LoadGatheringData()
             gatheringItems[itemId] = item;
             count++;
         } while (result->NextRow());
-        LOG_INFO("server.loading", "Loaded {} gathering items", count);
+        LOG_INFO("module", "Loaded {} gathering items", count);
     }
     else
     {
-        LOG_INFO("server.loading", "No gathering items found in database");
-    }
-
-    // Load zone multipliers
-    if (QueryResult result = WorldDatabase.Query("SELECT zone_id, multiplier FROM gathering_experience_zones"))
-    {
-        uint32 count = 0;
-        do
-        {
-            Field* fields = result->Fetch();
-            zoneMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
-            count++;
-        } while (result->NextRow());
-        LOG_INFO("server.loading", "Loaded {} zone multipliers", count);
-    }
-}
-
-void GatheringExperienceModule::LoadZoneData()
-{
-    // Clear existing zone data
-    zoneMultipliers.clear();
-
-    // Load zone multipliers
-    if (QueryResult result = WorldDatabase.Query("SELECT zone_id, multiplier FROM gathering_experience_zones"))
-    {
-        uint32 count = 0;
-        do
-        {
-            Field* fields = result->Fetch();
-            uint32 zoneId = fields[0].Get<uint32>();
-            float multiplier = fields[1].Get<float>();
-            zoneMultipliers[zoneId] = multiplier;
-            count++;
-        } while (result->NextRow());
-        LOG_INFO("server.loading", "Loaded {} zone multipliers", count);
-    }
-    else
-    {
-        LOG_INFO("server.loading", "No zone multipliers found in database");
+        LOG_INFO("module", "No gathering items found in database");
     }
 }
 
