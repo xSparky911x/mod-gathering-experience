@@ -255,7 +255,30 @@ public:
                     handler->SendSysMessage("Multiplier must be greater than 0.");
                     return false;
                 }
-                query += Acore::StringFormat("multiplier = {}", multiplier);
+                
+                // For multiplier, we use the rarity table instead
+                if (multiplier == 1.0f)
+                {
+                    // Remove from rarity table if setting to default multiplier
+                    WorldDatabase.DirectExecute("DELETE FROM gathering_experience_rarity WHERE item_id = {}", itemId);
+                }
+                else
+                {
+                    // Insert or update the rarity multiplier
+                    WorldDatabase.DirectExecute(
+                        "REPLACE INTO gathering_experience_rarity (item_id, multiplier) VALUES ({}, {})",
+                        itemId, multiplier);
+                }
+
+                // Force reload of data after modification
+                if (!GatheringExperienceModule::instance)
+                {
+                    handler->PSendSysMessage("Failed to reload data after modifying item {}.", itemId);
+                    return false;
+                }
+
+                GatheringExperienceModule::instance->LoadDataFromDB();
+                return true;  // Return here since we don't need to update the main table
             }
             else
             {
