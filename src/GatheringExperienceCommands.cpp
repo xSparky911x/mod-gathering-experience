@@ -138,10 +138,7 @@ public:
 
         // Get item details before removing
         QueryResult result = WorldDatabase.Query(
-            "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, ge.multiplier, ge.name "
-            "FROM gathering_experience ge "
-            "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
-            "WHERE ge.item_id = {}", itemId);
+            "SELECT item_id FROM gathering_experience WHERE item_id = {}", itemId);
 
         if (!result)
         {
