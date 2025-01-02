@@ -278,7 +278,29 @@ public:
                 }
 
                 GatheringExperienceModule::instance->LoadDataFromDB();
-                return true;  // Return here since we don't need to update the main table
+
+                // Show updated values
+                QueryResult result = WorldDatabase.Query(
+                    "SELECT ge.item_id, ge.base_xp, ge.required_skill, gep.name as prof_name, "
+                    "COALESCE(ger.multiplier, 1.0) as multiplier, ge.name "
+                    "FROM gathering_experience ge "
+                    "JOIN gathering_experience_professions gep ON ge.profession = gep.profession_id "
+                    "LEFT JOIN gathering_experience_rarity ger ON ge.item_id = ger.item_id "
+                    "WHERE ge.item_id = {}", itemId);
+
+                if (result)
+                {
+                    Field* fields = result->Fetch();
+                    handler->PSendSysMessage("Updated values - ItemID: {}, BaseXP: {}, ReqSkill: {}, Profession: {}, Multiplier: {:.2f}, Name: {}",
+                        fields[0].Get<uint32>(),
+                        fields[1].Get<uint32>(),
+                        fields[2].Get<uint32>(),
+                        fields[3].Get<std::string>(),
+                        fields[4].Get<float>(),
+                        fields[5].Get<std::string>());
+                }
+
+                return true;
             }
             else
             {
