@@ -101,11 +101,6 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
 
     float zoneMult = sGatheringExperience->GetZoneMultiplier(zoneId);
 
-    if (sGatheringExperience->IsCityZone(zoneId))
-    {
-        zoneMult *= 0.5f;  // 50% penalty in cities since they're safe zones
-    }
-
     float rarityMult = GetRarityMultiplier(itemId);
     uint32 normalXP = static_cast<uint32>(adjustedBaseXP * levelPenalty * (1.0f + progressBonus) * zoneMult * rarityMult);
     uint32 finalXP = std::min(normalXP, MAX_EXPERIENCE_GAIN);

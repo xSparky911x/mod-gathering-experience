@@ -23,20 +23,6 @@ enum GatheringProfessions
     PROF_FISHING    = 4
 };
 
-enum CitiesZoneIds
-{
-    ZONE_STORMWIND = 1519,
-    ZONE_IRONFORGE = 1537,
-    ZONE_DARNASSUS = 1657,
-    ZONE_ORGRIMMAR = 1637,
-    ZONE_THUNDERBLUFF = 1638,
-    ZONE_UNDERCITY = 1497,
-    ZONE_EXODAR = 3557,
-    ZONE_SILVERMOON = 3487,
-    ZONE_SHATTRATH = 3703,
-    ZONE_DALARAN = 4395,
-};
-
 class GatheringExperienceModule : public PlayerScript, public WorldScript
 {
 private:
@@ -132,8 +118,6 @@ public:
     {
         return gatheringItems.find(itemId) != gatheringItems.end();
     }
-
-    bool IsCityZone(uint32 zoneId) const;
 
 private:
     // Helper functions
