@@ -73,7 +73,7 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
 
     if (levelDiff < 0)  // Player is below recommended level
     {
-        levelPenalty = std::max(0.4f, 1.0f - (std::abs(levelDiff) * 0.03f));
+        levelPenalty = std::max(0.01f, 1.0f - (std::abs(levelDiff) * 0.03f));
         penaltyReason = fmt::format("reduced by {}% (level {} < {})", 
             static_cast<int>((1.0f - levelPenalty) * 100), 
             player->GetLevel(), 
