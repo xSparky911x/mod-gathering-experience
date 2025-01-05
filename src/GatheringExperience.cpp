@@ -219,26 +219,6 @@ void GatheringExperienceModule::OnLootItem(Player* player, Item* item, [[maybe_u
     }
 }
 
-bool GatheringExperienceModule::IsCityZone(uint32 zoneId) const
-{
-    switch (zoneId)
-    {
-        case ZONE_STORMWIND:
-        case ZONE_IRONFORGE:
-        case ZONE_DARNASSUS:
-        case ZONE_ORGRIMMAR:
-        case ZONE_THUNDERBLUFF:
-        case ZONE_UNDERCITY:
-        case ZONE_EXODAR:
-        case ZONE_SILVERMOON:
-        case ZONE_SHATTRATH:
-        case ZONE_DALARAN:
-            return true;
-        default:
-            return false;
-    }
-}
-
 void GatheringExperienceModule::SaveSettingToDB(std::string const& profession, bool enabled)
 {
     WorldDatabase.DirectExecute(
