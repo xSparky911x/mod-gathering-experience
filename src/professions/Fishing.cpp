@@ -58,7 +58,8 @@ uint32 FishingExperience::CalculateFishingExperience(Player* player, uint32 item
 
     // Get recommended level for this fish based on base XP
     uint32 recommendedLevel = 1;
-    if (baseXP >= 700)           recommendedLevel = 70;  // Northrend
+    if (baseXP >= 800)           recommendedLevel = 80;  // Northrend
+    else if (baseXP >= 700)      recommendedLevel = 70;  // Northrend
     else if (baseXP >= 600)      recommendedLevel = 60;  // Outland
     else if (baseXP >= 500)      recommendedLevel = 50;  // High vanilla
     else if (baseXP >= 400)      recommendedLevel = 40;  // Mid-high vanilla
