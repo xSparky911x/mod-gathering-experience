@@ -17,7 +17,7 @@
 GatheringExperienceModule* GatheringExperienceModule::instance = nullptr;
 
 // Define the version string here
-const char* GATHERING_EXPERIENCE_VERSION = "0.6";
+const char* GATHERING_EXPERIENCE_VERSION = "0.6.1";
 
 void GatheringExperienceModule::LoadDataFromDB()
 {
