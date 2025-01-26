@@ -21,7 +21,6 @@ uint32 MiningExperience::CalculateMiningExperience(Player* player, uint32 itemId
         return 0;
 
     uint32 baseXP = std::get<0>(*gatherData);
-    uint32 requiredSkill = std::get<1>(*gatherData);
     uint16 playerSkill = player->GetSkillValue(SKILL_MINING);
     std::string itemName = std::get<3>(*gatherData);
 

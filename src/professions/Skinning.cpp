@@ -21,7 +21,6 @@ uint32 SkinningExperience::CalculateSkinningExperience(Player* player, uint32 it
         return 0;
 
     uint32 baseXP = std::get<0>(*gatherData);
-    uint32 requiredSkill = std::get<1>(*gatherData);
     uint16 playerSkill = player->GetSkillValue(SKILL_SKINNING);
     std::string itemName = std::get<3>(*gatherData);
 
