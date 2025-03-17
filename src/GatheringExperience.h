@@ -66,11 +66,11 @@ public:
     }
 
     // Override functions
-    void OnStartup() override;
-    void OnBeforeConfigLoad(bool reload) override;
-    void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid) override;
-    void OnAfterConfigLoad(bool reload) override;
-    void OnLogin(Player* player) override;
+    void OnStartup();
+    void OnBeforeConfigLoad(bool reload);
+    void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid);
+    void OnAfterConfigLoad(bool reload);
+    void OnLogin(Player* player);
 
     // Database loading
     void LoadDataFromDB();
