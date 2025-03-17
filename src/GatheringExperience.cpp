@@ -48,7 +48,7 @@ void GatheringExperienceModule::LoadDataFromDB()
         do
         {
             Field* fields = result->Fetch();
-            zoneMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
+            rarityMultipliers[fields[0].Get<uint32>()] = fields[1].Get<float>();
             count++;
         } while (result->NextRow());
         LOG_INFO("module", "Loaded {} rarity multipliers", count);
@@ -229,6 +229,21 @@ void GatheringExperienceModule::SaveSettingToDB(std::string const& profession, b
 void GatheringExperienceModule::OnStartup()
 {
     LOG_INFO("server.loading", "GatheringExperienceModule - Loading data from database...");
+
+    // Apply database updates
+    if (!sWorld->getBoolConfig(CONFIG_DISABLE_DATABASE_UPDATES))
+    {
+        LOG_INFO("module", "Applying database updates for Gathering Experience module...");
+        DatabaseLoader loader("mod-gathering-experience");
+        
+        // Use absolute paths based on module directory
+        std::string moduleDir = "/modules/mod-gathering-experience/";
+        loader.AddUpdatePath(moduleDir + "data/sql/db-world/updates/");
+        loader.AddUpdatePath(moduleDir + "data/sql/db-auth/updates/");
+        loader.AddUpdatePath(moduleDir + "data/sql/db-characters/updates/");
+        loader.Update();
+    }
+
     LoadDataFromDB();
 }
 
