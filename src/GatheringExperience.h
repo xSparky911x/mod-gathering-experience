@@ -47,6 +47,7 @@ private:
 
     std::map<uint32, GatheringItem> gatheringItems;
     std::map<uint32, float> zoneMultipliers;
+    std::map<uint32, float> rarityMultipliers;
     bool enabled{false};
     bool dataLoaded{false};
 
