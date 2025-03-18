@@ -1,4 +1,71 @@
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+#include "GatheringExperience.h"
+#include "GatheringExperienceCommands.h"
+#include "professions/Fishing.h"
+#include "professions/Skinning.h"
+#include "professions/Herbalism.h"
+#include "professions/Mining.h"
+#include "ScriptMgr.h"
+#include "DatabaseEnv.h"
+
+// Declare the function to register the module scripts
+void AddGatheringExperienceModuleScripts()
+{
+    // Execute the SQL file
+    std::string sqlFilePath = "/azerothcore/modules/mod-gathering-experience/data/sql/db-world/gathering_experience.sql";#include "GatheringExperience.h"
+    #include "GatheringExperienceCommands.h"
+    #include "professions/Fishing.h"
+    #include "professions/Skinning.h"
+    #include "professions/Herbalism.h"
+    #include "professions/Mining.h"
+    #include "ScriptMgr.h"
+    #include "DatabaseEnv.h"
+    
+    // Declare the function to register the module scripts
+    void AddGatheringExperienceModuleScripts()
+    {
+        // Execute the SQL file
+        std::string sqlFilePath = "/azerothcore/modules/mod-gathering-experience/data/sql/db-world/gathering_experience.sql";
+        if (!WorldDatabase.ExecuteFile(sqlFilePath))
+        {
+            LOG_ERROR("module.gatheringexperience", "Failed to execute SQL file: %s", sqlFilePath.c_str());
+        }
+    
+        new GatheringExperienceModule();
+        new GatheringExperienceCommandScript();
+        // Initialize the profession singletons
+        sFishingExperience->instance();
+        sSkinningExperience->instance();
+        sHerbalismExperience->instance();
+        sMiningExperience->instance();
+    }
+    
+    // This is the function that the module system looks for
+    void Addmod_gathering_experienceScripts()
+    {
+        AddGatheringExperienceModuleScripts();
+    }
+    if (sConfigMgr->GetBoolDefault("Updates.AutoUpdateDatabase", true))
+    {
+        if (!WorldDatabase.ExecuteFile(sqlFilePath))
+        {
+            LOG_ERROR("module.gatheringexperience", "Failed to execute SQL file: %s", sqlFilePath.c_str());
+        }
+    }
+
+    new GatheringExperienceModule();
+    new GatheringExperienceCommandScript();
+    // Initialize the profession singletons
+    sFishingExperience->instance();
+    sSkinningExperience->instance();
+    sHerbalismExperience->instance();
+    sMiningExperience->instance();
+}
+
+// This is the function that the module system looks for
+void Addmod_gathering_experienceScripts()
+{
+    AddGatheringExperienceModuleScripts();
+}/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET NAMES utf8mb4 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
