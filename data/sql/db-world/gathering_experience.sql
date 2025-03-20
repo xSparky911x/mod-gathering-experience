@@ -1,3 +1,5 @@
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+
 CREATE TABLE IF NOT EXISTS `gathering_experience_professions` (
     `profession_id` TINYINT UNSIGNED NOT NULL,
     `name` VARCHAR(50) NOT NULL,
@@ -29,10 +31,6 @@ CREATE TABLE IF NOT EXISTS `gathering_experience_zones` (
     PRIMARY KEY (`zone_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- ----------------------------------------
--- Rarity Table Creation
--- ----------------------------------------
-
 CREATE TABLE IF NOT EXISTS `gathering_experience_rarity` (
     `item_id` INT UNSIGNED NOT NULL,
     `multiplier` FLOAT NOT NULL DEFAULT '1',
@@ -57,7 +55,7 @@ INSERT IGNORE INTO `gathering_experience_settings` (`profession`, `enabled`) VAL
 ('fishing', 1);
 
 -- ----------------------------------------
--- Mining Data
+-- Mining Data (Profession ID: 1)
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
@@ -85,26 +83,17 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (22203, 625, 305, 1, 'Large Obsidian Shard');
 
 -- ----------------------------------------
--- Herbalism Data
+-- Herbalism Data (Profession ID: 2)
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
 (765, 50, 1, 2, 'Silverleaf'),
-(783, 150, 75, 3, 'Light Hide'),
 (785, 100, 50, 2, 'Mageroyal'),
-(2318, 100, 1, 3, 'Light Leather'),
-(2319, 200, 100, 3, 'Medium Leather'),
 (2447, 50, 1, 2, 'Peacebloom'),
 (2449, 100, 15, 2, 'Earthroot'),
 (2450, 150, 70, 2, 'Briarthorn'),
 (2452, 150, 50, 2, 'Swiftthistle'),
 (2453, 200, 100, 2, 'Bruiseweed'),
-(2770, 100, 1, 1, 'Copper Ore'),
-(2771, 200, 65, 1, 'Tin Ore'),
-(2772, 300, 125, 1, 'Iron Ore'),
-(2775, 100, 75, 1, 'Silver Ore'),
-(2776, 250, 155, 1, 'Gold Ore'),
-(2934, 75, 1, 3, 'Ruined Leather Scraps'),
 (3355, 220, 115, 2, 'Wild Steelbloom'),
 (3356, 240, 125, 2, 'Kingsblood'),
 (3357, 300, 150, 2, 'Liferoot'),
@@ -114,15 +103,85 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (3819, 390, 195, 2, 'Wintersbite'),
 (3820, 200, 85, 2, 'Stranglekelp'),
 (3821, 340, 170, 2, 'Goldthorn'),
-(3858, 400, 175, 1, 'Mithril Ore'),
+(4625, 410, 205, 2, 'Firebloom'),
+(8831, 420, 210, 2, 'Purple Lotus'),
+(8836, 440, 220, 2, 'Arthas\' Tears'),
+(8838, 460, 230, 2, 'Sungrass'),
+(8839, 470, 235, 2, 'Blindweed'),
+(8845, 470, 245, 2, 'Ghost Mushroom'),
+(8846, 500, 250, 2, 'Gromsblood'),
+(13463, 540, 250, 2, 'Dreamfoil'),
+(13464, 520, 260, 2, 'Golden Sansam'),
+(13465, 560, 280, 2, 'Mountain Silversage'),
+(13466, 570, 285, 2, 'Plaguebloom'),
+(13467, 600, 300, 2, 'Icecap'),
+(13468, 600, 300, 2, 'Black Lotus'),
+(22785, 600, 300, 2, 'Felweed'),
+(22786, 600, 315, 2, 'Dreaming Glory'),
+(22787, 650, 325, 2, 'Ragveil'),
+(22789, 600, 325, 2, 'Terocone'),
+(22790, 680, 340, 2, 'Ancient Lichen'),
+(22791, 700, 350, 2, 'Netherbloom'),
+(22792, 700, 365, 2, 'Nightmare Vine'),
+(22793, 700, 375, 2, 'Mana Thistle'),
+(36901, 720, 350, 2, 'Goldclover'),
+(36903, 770, 400, 2, 'Adder\'s Tongue'),
+(36904, 720, 375, 2, 'Tiger Lily'),
+(36905, 800, 425, 2, 'Lichbloom'),
+(36906, 800, 435, 2, 'Icethorn'),
+(36907, 720, 385, 2, 'Talandra\'s Rose'),
+(36908, 800, 450, 2, 'Frost Lotus');
+
+-- ----------------------------------------
+-- Skinning Data (Profession ID: 3)
+-- ----------------------------------------
+
+INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
+(783, 150, 75, 3, 'Light Hide'),
+(2318, 100, 1, 3, 'Light Leather'),
+(2319, 200, 100, 3, 'Medium Leather'),
+(2934, 75, 1, 3, 'Ruined Leather Scraps'),
 (4232, 250, 125, 3, 'Medium Hide'),
 (4234, 300, 150, 3, 'Heavy Leather'),
 (4235, 350, 175, 3, 'Heavy Hide'),
 (4304, 400, 200, 3, 'Thick Leather'),
-(4603, 600, 0, 4, 'Raw Spotted Yellowtail'),
-(4625, 410, 205, 2, 'Firebloom'),
 (5784, 250, 125, 3, 'Slimy Murloc Scale'),
 (5785, 450, 225, 3, 'Thick Murloc Scale'),
+(6470, 200, 100, 3, 'Deviate Scale'),
+(6471, 300, 150, 3, 'Perfect Deviate Scale'),
+(7286, 350, 175, 3, 'Black Whelp Scale'),
+(7287, 400, 200, 3, 'Red Whelp Scale'),
+(8154, 500, 250, 3, 'Scorpid Scale'),
+(8169, 450, 225, 3, 'Thick Hide'),
+(8170, 500, 250, 3, 'Rugged Leather'),
+(8171, 550, 275, 3, 'Rugged Hide'),
+(15408, 600, 300, 3, 'Heavy Scorpid Scale'),
+(15410, 800, 500, 3, 'Scale of Onyxia'),
+(15412, 675, 375, 3, 'Green Dragonscale'),
+(15414, 650, 350, 3, 'Red Dragonscale'),
+(15415, 625, 325, 3, 'Blue Dragonscale'),
+(15416, 625, 325, 3, 'Black Dragonscale'),
+(15417, 600, 300, 3, 'Devilsaur Leather'),
+(15419, 775, 475, 3, 'Pristine Hide of the Beast'),
+(15423, 825, 525, 3, 'Brilliant Chromatic Scale'),
+(17012, 675, 375, 3, 'Core Leather'),
+(21887, 650, 350, 3, 'Knothide Leather'),
+(25649, 600, 300, 3, 'Knothide Leather Scraps'),
+(25700, 675, 310, 3, 'Fel Scales'),
+(25707, 700, 400, 3, 'Fel Hide'),
+(29539, 700, 400, 3, 'Cobra Scales'),
+(29547, 700, 400, 3, 'Wind Scales'),
+(33567, 650, 350, 3, 'Borean Leather Scraps'),
+(33568, 700, 425, 3, 'Borean Leather'),
+(38425, 750, 450, 3, 'Heavy Borean Leather'),
+(44128, 800, 475, 3, 'Arctic Fur');
+
+-- ----------------------------------------
+-- Fishing Data (Profession ID: 4)
+-- ----------------------------------------
+
+INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, profession, name) VALUES
+(4603, 600, 0, 4, 'Raw Spotted Yellowtail'),
 (6289, 200, 0, 4, 'Raw Longjaw Mud Snapper'),
 (6291, 100, 0, 4, 'Raw Brilliant Smallfish'),
 (6292, 150, 0, 4, '10 Pound Mud Snapper'),
@@ -139,63 +198,13 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (6362, 450, 0, 4, 'Raw Rockscale Cod'),
 (6363, 325, 0, 4, '26 Pound Catfish'),
 (6364, 350, 0, 4, '32 Pound Catfish'),
-(6470, 200, 100, 3, 'Deviate Scale'),
-(6471, 300, 150, 3, 'Perfect Deviate Scale'),
 (6522, 625, 0, 4, 'Deviate Fish'),
-(7286, 350, 175, 3, 'Black Whelp Scale'),
-(7287, 400, 200, 3, 'Red Whelp Scale'),
-(7911, 400, 205, 1, 'Truesilver Ore'),
-(8154, 500, 250, 3, 'Scorpid Scale'),
-(8169, 450, 225, 3, 'Thick Hide'),
-(8170, 500, 250, 3, 'Rugged Leather'),
-(8171, 550, 275, 3, 'Rugged Hide'),
-(8831, 420, 210, 2, 'Purple Lotus'),
-(8836, 440, 220, 2, 'Arthas\' Tears'),
-(8838, 460, 230, 2, 'Sungrass'),
-(8839, 470, 235, 2, 'Blindweed'),
-(8845, 470, 245, 2, 'Ghost Mushroom'),
-(8846, 500, 250, 2, 'Gromsblood'),
-(10620, 400, 245, 1, 'Thorium Ore'),
-(11370, 500, 230, 1, 'Dark Iron Ore'),
 (12238, 300, 0, 4, 'Darkshore Grouper'),
 (13422, 650, 0, 4, 'Stonescale Eel'),
-(13463, 540, 250, 2, 'Dreamfoil'),
-(13464, 520, 260, 2, 'Golden Sansam'),
-(13465, 560, 280, 2, 'Mountain Silversage'),
-(13466, 570, 285, 2, 'Plaguebloom'),
-(13467, 600, 300, 2, 'Icecap'),
-(13468, 600, 300, 2, 'Black Lotus'),
 (13757, 675, 0, 4, 'Lightning Eel'),
 (13888, 700, 0, 4, 'Darkclaw Lobster'),
-(15408, 600, 300, 3, 'Heavy Scorpid Scale'),
-(15410, 800, 500, 3, 'Scale of Onyxia'),
-(15412, 675, 375, 3, 'Green Dragonscale'),
-(15414, 650, 350, 3, 'Red Dragonscale'),
-(15415, 625, 325, 3, 'Blue Dragonscale'),
-(15416, 625, 325, 3, 'Black Dragonscale'),
-(15417, 600, 300, 3, 'Devilsaur Leather'),
-(15419, 775, 475, 3, 'Pristine Hide of the Beast'),
-(15423, 825, 525, 3, 'Brilliant Chromatic Scale'),
-(17012, 675, 375, 3, 'Core Leather'),
 (21071, 500, 0, 4, 'Raw Sagefish'),
 (21153, 550, 0, 4, 'Raw Greater Sagefish'),
-(21887, 650, 350, 3, 'Knothide Leather'),
-(22202, 550, 305, 1, 'Small Obsidian Shard'),
-(22203, 550, 305, 1, 'Large Obsidian Shard'),
-(22785, 600, 300, 2, 'Felweed'),
-(22786, 600, 315, 2, 'Dreaming Glory'),
-(22787, 650, 325, 2, 'Ragveil'),
-(22789, 600, 325, 2, 'Terocone'),
-(22790, 680, 340, 2, 'Ancient Lichen'),
-(22791, 700, 350, 2, 'Netherbloom'),
-(22792, 700, 365, 2, 'Nightmare Vine'),
-(22793, 700, 375, 2, 'Mana Thistle'),
-(23424, 600, 275, 1, 'Fel Iron Ore'),
-(23425, 650, 325, 1, 'Adamantite Ore'),
-(23426, 700, 375, 1, 'Khorium Ore'),
-(25649, 600, 300, 3, 'Knothide Leather Scraps'),
-(25700, 675, 310, 3, 'Fel Scales'),
-(25707, 700, 400, 3, 'Fel Hide'),
 (27422, 725, 0, 4, 'Barbed Gill Trout'),
 (27425, 750, 0, 4, 'Spotted Feltail'),
 (27429, 775, 0, 4, 'Zangarian Sporefish'),
@@ -203,21 +212,6 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (27437, 825, 0, 4, 'Icefin Bluefish'),
 (27438, 850, 0, 4, 'Golden Darter'),
 (27439, 875, 0, 4, 'Furious Crawdad'),
-(29539, 700, 400, 3, 'Cobra Scales'),
-(29547, 700, 400, 3, 'Wind Scales'),
-(33567, 650, 350, 3, 'Borean Leather Scraps'),
-(33568, 700, 425, 3, 'Borean Leather'),
-(36901, 720, 350, 2, 'Goldclover'),
-(36903, 770, 400, 2, 'Adder\'s Tongue'),
-(36904, 720, 375, 2, 'Tiger Lily'),
-(36905, 800, 425, 2, 'Lichbloom'),
-(36906, 800, 435, 2, 'Icethorn'),
-(36907, 720, 385, 2, 'Talandra\'s Rose'),
-(36908, 800, 450, 2, 'Frost Lotus'),
-(36909, 720, 350, 1, 'Cobalt Ore'),
-(36910, 800, 450, 1, 'Titanium Ore'),
-(36912, 750, 400, 1, 'Saronite Ore'),
-(38425, 750, 450, 3, 'Heavy Borean Leather'),
 (41800, 900, 0, 4, 'Deep Sea Monsterbelly'),
 (41801, 925, 0, 4, 'Moonglow Cuttlefish'),
 (41802, 950, 0, 4, 'Imperial Manta Ray'),
@@ -229,27 +223,12 @@ INSERT IGNORE INTO `gathering_experience` (item_id, base_xp, required_skill, pro
 (41809, 1100, 0, 4, 'Glassfin Minnow'),
 (41810, 1125, 0, 4, 'Fangtooth Herring'),
 (41812, 1150, 0, 4, 'Giant Darkwater Clam'),
-(41813, 1175, 0, 4, 'Succulent Orca Steak'),
-(44128, 800, 475, 3, 'Arctic Fur');
-
+(41813, 1175, 0, 4, 'Succulent Orca Steak');
 -- ----------------------------------------
 -- Zone Multipliers
 -- ----------------------------------------
 
 INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALUES
--- Cities (1.25x cap)
-(1519, 1.25, 'Stormwind City'),
-(1537, 1.25, 'Ironforge'),
-(1657, 1.25, 'Darnassus'),
-(1637, 1.25, 'Orgrimmar'),
-(1638, 1.25, 'Thunder Bluff'),
-(1497, 1.25, 'Undercity'),
-(3557, 1.25, 'The Exodar'),
-(3487, 1.25, 'Silvermoon City'),
-(3703, 1.25, 'Shattrath City'),
-(4395, 1.25, 'Dalaran'),
-
--- Vanilla Zones
 (1, 1.0, 'Dun Morogh'),
 (3, 1.3, 'Badlands'),
 (4, 1.4, 'Blasted Lands'),
@@ -330,16 +309,16 @@ INSERT IGNORE INTO `gathering_experience_zones` (zone_id, multiplier, name) VALU
 
 INSERT IGNORE INTO `gathering_experience_rarity` (`item_id`, `multiplier`) VALUES
 (6522, 2),      -- Deviate Fish
-(7910, 2),
+(7910, 2),      -- Mithril Deposit (Uncommon)
 (7911, 1.5),    -- Truesilver Ore
 (8836, 1.5),    -- Arthas' Tears
 (8838, 1.5),    -- Sungrass
 (8845, 2.5),    -- Ghost Mushroom
 (10620, 1.5),   -- Thorium Ore
-(11382, 2),
-(12363, 2.5),
-(12364, 2),
-(12800, 2),
+(11382, 2),     -- Blood of the Mountain
+(12363, 2.5),   -- Arcane Crystal
+(12364, 2),     -- Huge Emerald
+(12800, 2),     -- Azerothian Diamond
 (13463, 1.5),   -- Dreamfoil
 (13467, 3),     -- Icecap
 (13468, 3),     -- Black Lotus
@@ -361,6 +340,7 @@ INSERT IGNORE INTO `gathering_experience_rarity` (`item_id`, `multiplier`) VALUE
 (41807, 2),     -- Glacial Salmon
 (41813, 2),     -- Succulent Orca Steak
 (44128, 1.5);   -- Arctic Fur
+
 
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 
