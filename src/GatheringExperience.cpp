@@ -187,7 +187,7 @@ float GatheringExperienceModule::CalculateProgressBonus(uint32 currentSkill)
     return progressInTier * PROGRESS_BONUS_RATE;
 }
 
-void GatheringExperienceModule::OnLootItem(Player* player, Item* item, [[maybe_unused]] uint32 count, [[maybe_unused]] ObjectGuid lootguid)
+void GatheringExperienceModule::OnPlayerLootItem(Player* player, Item* item, [[maybe_unused]] uint32 count, [[maybe_unused]] ObjectGuid lootguid)
 {
     if (!enabled || !player || !item)
         return;
@@ -267,7 +267,7 @@ void GatheringExperienceModule::OnAfterConfigLoad(bool /*reload*/)
     }
 }
 
-void GatheringExperienceModule::OnLogin(Player* player)
+void GatheringExperienceModule::OnPlayerLogin(Player* player)
 {
     if (!enabled)
         return;

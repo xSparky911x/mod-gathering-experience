@@ -69,9 +69,9 @@ public:
     // Override functions
     void OnStartup();
     void OnBeforeConfigLoad(bool reload);
-    void OnLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid);
+    void OnPlayerLootItem(Player* player, Item* item, uint32 count, ObjectGuid lootguid);
     void OnAfterConfigLoad(bool reload);
-    void OnLogin(Player* player);
+    void OnPlayerLogin(Player* player);
 
     // Database loading
     void LoadDataFromDB();
